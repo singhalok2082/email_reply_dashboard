@@ -1,64 +1,63 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg-base:     #1a1915;
-  --bg-surface:  #201f1b;
-  --bg-elevated: #272520;
-  --bg-hover:    #2e2c27;
-  --bg-active:   #35332d;
+  /* Claude's exact colors */
+  --bg-base:     #1C1917;
+  --bg-surface:  #1C1917;
+  --bg-elevated: #292524;
+  --bg-hover:    #292524;
+  --bg-active:   #3C3835;
 
-  --border:       rgba(255,255,255,0.07);
-  --border-light: rgba(255,255,255,0.12);
+  --border:       #3C3835;
+  --border-light: #57534E;
 
-  --text-primary:   #e8e3d9;
-  --text-secondary: #9a9486;
-  --text-muted:     #5a5650;
+  --text-primary:   #E7E5E4;
+  --text-secondary: #A8A29E;
+  --text-muted:     #78716C;
 
-  --accent:        #d4a35b;
-  --accent-bright: #e8b96a;
-  --accent-dim:    rgba(212,163,91,0.10);
-  --accent-border: rgba(212,163,91,0.25);
+  /* Claude orange */
+  --accent:        #D97706;
+  --accent-light:  #F59E0B;
+  --accent-dim:    rgba(217,119,6,0.12);
+  --accent-border: rgba(217,119,6,0.3);
 
-  --new:        #6b9fd4;
-  --new-bg:     rgba(107,159,212,0.10);
-  --hot:        #e07b5a;
-  --hot-bg:     rgba(224,123,90,0.10);
-  --followup:   #d4a35b;
-  --followup-bg:rgba(212,163,91,0.10);
-  --replied:    #6fb48a;
-  --replied-bg: rgba(111,180,138,0.10);
-  --notint:     #6b6660;
-  --notint-bg:  rgba(107,102,96,0.10);
+  /* Status — muted warm tones */
+  --new:        #60A5FA;
+  --new-bg:     rgba(96,165,250,0.08);
+  --hot:        #F87171;
+  --hot-bg:     rgba(248,113,113,0.08);
+  --followup:   #FBBF24;
+  --followup-bg:rgba(251,191,36,0.08);
+  --replied:    #34D399;
+  --replied-bg: rgba(52,211,153,0.08);
+  --notint:     #78716C;
+  --notint-bg:  rgba(120,113,108,0.08);
 
-  --font:   'Georgia', 'Times New Roman', serif;
-  --sans:   ui-sans-serif, system-ui, sans-serif;
-  --mono:   ui-monospace, monospace;
-
-  --radius:    6px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  --font: -apple-system, 'Helvetica Neue', sans-serif;
+  --mono: 'SF Mono', 'Monaco', monospace;
+  --radius: 8px;
+  --radius-lg: 12px;
 }
 
 html, body {
   height: 100%;
   background: var(--bg-base);
   color: var(--text-primary);
-  font-family: var(--sans);
+  font-family: var(--font);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-#root { height: 100%; display: flex; flex-direction: column; }
+#root { height: 100%; display: flex; }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-button { cursor: pointer; font-family: var(--sans); }
-input, select, textarea { font-family: var(--sans); }
+button { cursor: pointer; font-family: var(--font); }
+input, select, textarea { font-family: var(--font); }
 
-@keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-@keyframes slideRight { from { opacity:0; transform:translateX(14px); } to { opacity:1; transform:translateX(0); } }
-@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideIn { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
