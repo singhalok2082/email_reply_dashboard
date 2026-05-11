@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, formatDistanceToNow } from 'date-fns'
 import './ConversationDetail.css'
 
 const INTENT_META = {
@@ -13,15 +13,24 @@ const INTENT_META = {
   'Replied':      { c:'#8B8378', b:'rgba(139,131,120,0.12)' },
 }
 
+const AVATAR_COLORS = ['#C96442','#7A8C99','#A98556','#6B8E5A','#9A6B8E','#5A7F8C']
+const CAMP_COLORS   = ['#C96442','#7A8C99','#6B8E5A','#A98556','#9A6B8E','#5A7F8C']
 const STATUS_OPTIONS = ['New','Interested','Meeting','OOO','Nurture','Unsubscribe','Follow Up','Replied']
 
 function fmt(ts) {
-  try { return format(parseISO(ts), 'MMM d · h:mm a') } catch { return ts||'—' }
+  try { return format(parseISO(ts), 'MMM d · h:mma') } catch { return ts||'—' }
 }
-
+function ago(ts) {
+  try { return formatDistanceToNow(parseISO(ts), { addSuffix:true }) } catch { return '' }
+}
 function initials(name, email) {
   if (name) return name.split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase()
   return (email||'?')[0].toUpperCase()
+}
+function getDomain(email) {
+  if (!email) return ''
+  const p = email.split('@')[1] || ''
+  return p.replace(/\.(com|org|net|io|ai)$/,'')
 }
 
 export default function ConversationDetail({ reply, onClose, onStatusChange, onNotesChange, statusOptions, campaigns }) {
@@ -34,7 +43,7 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
     setSaved(false)
   }, [reply?.id])
 
-  const save = async () => {
+  const saveNotes = async () => {
     setSaving(true)
     await onNotesChange(reply.id, notes)
     setSaving(false); setSaved(true)
@@ -42,116 +51,205 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
   }
 
   const im = INTENT_META[reply?.status] || INTENT_META['New']
-  const firstName = reply?.lead_name?.split(' ')[0] || reply?.lead_email?.split('@')[0] || 'there'
+  const firstName = reply?.lead_name?.split(' ')[0] || 'there'
+  const campIdx   = (campaigns||[]).indexOf(reply?.campaign_name)
+  const campColor = CAMP_COLORS[campIdx >= 0 ? campIdx % CAMP_COLORS.length : 0]
+  const leadColor = AVATAR_COLORS[0]
+  const pocColor  = AVATAR_COLORS[1]
+
+  const activity = [
+    { dot: im.c,         text: `AI tagged "${(reply.status||'New').toLowerCase()}"`, time: ago(reply.created_at) },
+    { dot: '#7A8C99',    text: `Routed to ${reply.poc || 'handler'}`,               time: ago(reply.created_at) },
+    { dot: '#6B8E5A',    text: 'Reply received',                                    time: ago(reply.created_at) },
+    { dot: '#B8AFA0',    text: 'Sequence sent',                                     time: fmt(reply.created_at) },
+  ]
 
   return (
     <div className="conv">
-      {/* Top actions bar */}
-      <div className="conv-actions">
-        <button className="conv-back-btn" onClick={onClose}>← Inbox</button>
-        <div style={{flex:1}}/>
-        {reply.poc && <span style={{fontSize:12,color:'var(--ink3)'}}>Handler: {reply.poc}</span>}
-        <button className="conv-action-btn">Reassign</button>
-        <button className="conv-action-btn">Snooze</button>
-        <button className="conv-action-btn primary" onClick={()=>onStatusChange(reply.id,'Replied')}>
-          Mark done
-        </button>
-      </div>
+      {/* ── Main thread ── */}
+      <div className="conv-main">
 
-      {/* Status pills bar - matches wireframe top */}
-      <div className="conv-statusbar">
-        {/* Current status as active pill */}
-        {STATUS_OPTIONS.map(s => {
-          const sm = INTENT_META[s] || INTENT_META['New']
-          const active = reply.status === s
-          return (
-            <button
-              key={s}
-              className={`conv-status-pill ${active?'active':''}`}
-              style={active
-                ? { color:sm.c, borderColor:sm.c, background:sm.b }
-                : { color:'var(--ink3)', borderColor:'var(--line)' }
-              }
-              onClick={() => onStatusChange(reply.id, s)}
-            >
-              {s}
-            </button>
-          )
-        })}
-        {reply.campaign_name && (
-          <span className="conv-meta-pill">◆ {reply.campaign_name}</span>
-        )}
-        <span className="conv-ai-tag">← AI tagged</span>
-      </div>
+        {/* Top bar */}
+        <div className="conv-topbar">
+          <button className="conv-back" onClick={onClose}>← Inbox</button>
+          {reply.status && (
+            <span className="conv-topbar-pill"
+              style={{ color:im.c, borderColor:im.c+'60', background:im.b }}>
+              {reply.status.toLowerCase()}
+            </span>
+          )}
+          {reply.campaign_name && (
+            <span className="conv-topbar-pill"
+              style={{ color:campColor, borderColor:campColor+'60', background:campColor+'12' }}>
+              <span style={{width:7,height:7,borderRadius:'50%',background:campColor,display:'inline-block',marginRight:3}}/>
+              {reply.campaign_name}
+            </span>
+          )}
+          <div className="conv-spacer"/>
+          <button className="conv-top-btn">Reassign</button>
+          <button className="conv-top-btn">Snooze</button>
+          <button className="conv-top-btn primary"
+            onClick={() => onStatusChange(reply.id, 'Replied')}>
+            Mark done
+          </button>
+        </div>
 
-      {/* Scrollable thread */}
-      <div className="conv-body">
-        {/* Subject + sender */}
-        <div>
-          <div className="conv-heading">{reply.reply_subject || '(no subject)'}</div>
-          <div className="conv-sender" style={{marginTop:8}}>
-            <div className="conv-sender-av" style={{background:'var(--ink3)'}}>
+        {/* Thread */}
+        <div className="conv-thread">
+          <div>
+            <div className="conv-subject">{reply.reply_subject || '(no subject)'}</div>
+            <div className="conv-thread-meta">2 messages · started {fmt(reply.created_at)}</div>
+          </div>
+
+          {/* Our sent email — RIGHT side */}
+          {reply.sent_email_body && (
+            <div className="conv-msg ours">
+              <div className="conv-msg-av" style={{ background: pocColor }}>
+                {reply.poc ? reply.poc[0].toUpperCase() : 'A'}
+              </div>
+              <div className="conv-msg-body">
+                <div className="conv-msg-from">{reply.poc || 'You'}</div>
+                <div className="conv-msg-time">{fmt(reply.created_at)}</div>
+                <div className="conv-msg-text">{reply.sent_email_body}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Lead reply — LEFT side */}
+          <div className="conv-msg theirs">
+            <div className="conv-msg-av" style={{ background: leadColor }}>
               {initials(reply.lead_name, reply.lead_email)}
             </div>
-            <div>
-              <div className="conv-sender-name">{reply.lead_name || reply.lead_email}</div>
-              <div className="conv-sender-email">{reply.lead_email}</div>
+            <div className="conv-msg-body">
+              <div className="conv-msg-from">{reply.lead_name || reply.lead_email}</div>
+              <div className="conv-msg-time">{fmt(reply.created_at)}</div>
+              <div className="conv-msg-text">{reply.reply_body || '—'}</div>
             </div>
-            <div className="conv-sender-time">{fmt(reply.created_at)}</div>
           </div>
-        </div>
 
-        {/* Lead reply body */}
-        <div className="conv-email-box">
-          {reply.reply_body || '—'}
-        </div>
-
-        {/* Sent email (outbound) */}
-        {reply.sent_email_body && (
-          <div className="conv-sent-box">
-            <div className="conv-sent-label">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
-              </svg>
-              Outbound · sent by {reply.sending_email || 'you'}
+          {/* AI draft */}
+          <div className="conv-ai-wrap">
+            <div className="conv-ai-hdr">
+              <span className="conv-ai-pill">AI suggested reply</span>
+              <span className="conv-ai-note">matches your last 5 tones</span>
             </div>
-            <div className="conv-sent-body">{reply.sent_email_body}</div>
-          </div>
-        )}
-
-        {/* AI suggested reply */}
-        <div className="conv-ai-box">
-          <div className="conv-ai-header">
-            <span className="conv-ai-label-pill">AI draft</span>
-            <span className="conv-ai-edit">edit before send</span>
-          </div>
-          <div className="conv-ai-text">
-            {`Hi ${firstName} — thanks for getting back to me! Happy to connect and share more. Would you have 15 minutes this week for a quick call?\n\n— Alok`}
-          </div>
-          <div className="conv-ai-actions">
-            <button className="conv-ai-send">Send</button>
-            <button className="conv-ai-ghost">Edit</button>
-            <button className="conv-ai-ghost">Regenerate</button>
-            <button className="conv-ai-ghost">Try other tone ▾</button>
+            <div className="conv-ai-text">
+              {`Hi ${firstName} — thanks for getting back to me!\n\nHappy to connect and share more about how we can help. Would you have 15 minutes this week for a quick call?\n\n— ${reply.poc || 'Alok'}`}
+            </div>
+            <div className="conv-ai-acts">
+              <button className="conv-ai-use">Use draft</button>
+              <button className="conv-ai-ghost">Edit</button>
+              <button className="conv-ai-ghost">Regenerate</button>
+              <button className="conv-ai-ghost">Try other tone ▾</button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Notes at bottom */}
-      <div className="conv-notes-section">
-        <div className="conv-notes-label">Notes</div>
-        <textarea
-          className="conv-notes-ta"
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder="Add context, next steps, follow-up date…"
-        />
-        <button
-          className={`conv-save-btn ${saved?'saved':''}`}
-          onClick={save} disabled={saving}
-        >
-          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save notes'}
-        </button>
+      {/* ── Right rail ── */}
+      <div className="conv-rail">
+
+        {/* Lead info */}
+        <div>
+          <div className="rail-lead-av" style={{ background: leadColor }}>
+            {initials(reply.lead_name, reply.lead_email)}
+          </div>
+          <div className="rail-lead-name">{reply.lead_name || reply.lead_email}</div>
+          {getDomain(reply.lead_email) && (
+            <div className="rail-lead-title">{getDomain(reply.lead_email)}</div>
+          )}
+        </div>
+
+        {/* Contact info */}
+        <div>
+          {reply.lead_email && (
+            <div className="rail-info-row">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <path d="m22 6-10 7L2 6"/>
+              </svg>
+              {reply.lead_email}
+            </div>
+          )}
+        </div>
+
+        <div className="rail-divider"/>
+
+        {/* Campaign */}
+        <div>
+          <div className="rail-section-label">Campaign</div>
+          {reply.campaign_name && (
+            <div className="rail-camp-name">
+              <div className="rail-camp-dot" style={{ background: campColor }}/>
+              {reply.campaign_name}
+            </div>
+          )}
+          {reply.poc && (
+            <div className="rail-owner-row">
+              <span style={{ fontSize:11, color:'var(--ink3)' }}>Owner</span>
+              <div className="rail-mini-av" style={{ background: pocColor }}>
+                {reply.poc[0].toUpperCase()}
+              </div>
+              <span style={{ fontSize:12 }}>{reply.poc}</span>
+            </div>
+          )}
+          {reply.sending_email && (
+            <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2 }}>
+              Sent from {reply.sending_email}
+            </div>
+          )}
+        </div>
+
+        <div className="rail-divider"/>
+
+        {/* Status */}
+        <div>
+          <div className="rail-section-label">Status</div>
+          <div className="status-pills-row">
+            {STATUS_OPTIONS.map(s => {
+              const sm = INTENT_META[s] || {}
+              const active = reply.status === s
+              return (
+                <button key={s}
+                  className={`status-micro-pill ${active?'active':''}`}
+                  style={active ? { color:sm.c, borderColor:sm.c, background:sm.b } : {}}
+                  onClick={() => onStatusChange(reply.id, s)}
+                >
+                  {s}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="rail-divider"/>
+
+        {/* Notes */}
+        <div>
+          <div className="rail-section-label">Notes</div>
+          <textarea
+            className="rail-notes-input"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="+ Add note"
+          />
+          <button className={`rail-save-btn ${saved?'saved':''}`} onClick={saveNotes} disabled={saving}>
+            {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
+          </button>
+        </div>
+
+        <div className="rail-divider"/>
+
+        {/* Activity */}
+        <div>
+          <div className="rail-section-label">Activity</div>
+          {activity.map((a, i) => (
+            <div key={i} className="rail-activity-item">
+              <div className="rail-act-dot" style={{ background: a.dot }}/>
+              <span>{a.text} · <span style={{ color:'var(--ink3)' }}>{a.time}</span></span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
