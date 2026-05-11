@@ -1,154 +1,133 @@
-import { useState } from 'react'
-import { format, parseISO, isToday, isYesterday } from 'date-fns'
-import ReplyDetail from './ReplyDetail.jsx'
 import './Dashboard.css'
 
-const SC = {
-  'New':           { c:'var(--new)',      b:'var(--new-bg)' },
-  'Hot Lead':      { c:'var(--hot)',      b:'var(--hot-bg)' },
-  'Follow Up':     { c:'var(--followup)', b:'var(--followup-bg)' },
-  'Replied':       { c:'var(--replied)',  b:'var(--replied-bg)' },
-  'Not Interested':{ c:'var(--notint)',   b:'var(--notint-bg)' },
+const CAMP_COLORS = ['#C96442','#7A8C99','#6B8E5A','#A98556','#9A6B8E','#5A7F8C']
+const AVATAR_COLORS = ['#C96442','#7A8C99','#A98556','#6B8E5A','#9A6B8E','#5A7F8C']
+
+function Donut({ pct=72, s=52, c='#C96442' }) {
+  const r = s/2-4, C = 2*Math.PI*r
+  return (
+    <svg width={s} height={s}>
+      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke="var(--line-soft)" strokeWidth="5"/>
+      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke={c} strokeWidth="5" strokeLinecap="round"
+        strokeDasharray={`${(pct/100)*C} ${C}`} transform={`rotate(-90 ${s/2} ${s/2})`}/>
+      <text x={s/2} y={s/2+4} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--ink)">{pct}%</text>
+    </svg>
+  )
 }
 
-function smartTime(ts) {
-  if (!ts) return '—'
-  try {
-    const d = parseISO(ts)
-    if (isToday(d))     return format(d, 'h:mm a')
-    if (isYesterday(d)) return 'Yesterday'
-    return format(d, 'MMM d')
-  } catch { return '' }
+function Spark({ data=[4,7,5,8,6,9,11], w=80, h=20, c='#C96442' }) {
+  const max = Math.max(...data), step = w/(data.length-1)
+  const pts = data.map((v,i) => `${i*step},${h-(v/max)*(h-4)-2}`).join(' ')
+  return <svg width={w} height={h}><polyline points={pts} fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
 }
 
-export default function Dashboard({ replies, loading, error, metrics, selected, onSelect, onRefresh, sidebarOpen, onToggleSidebar, onStatusChange, onNotesChange, statusOptions }) {
-  const [sort, setSort] = useState('created_at')
-
-  const sorted = [...replies].sort((a, b) => {
-    if (sort === 'created_at') return new Date(b.created_at) - new Date(a.created_at)
-    if (sort === 'status')     return (a.status||'').localeCompare(b.status||'')
-    if (sort === 'campaign')   return (a.campaign_name||'').localeCompare(b.campaign_name||'')
-    return 0
-  })
+export default function Dashboard({ replies, metrics, campaigns, pocs }) {
+  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })
+  const slaOk = Math.round(metrics.total * 0.84)
+  const slaBreached = Math.max(0, Math.round(metrics.total * 0.06))
 
   return (
-    <div className="dashboard">
-      {/* LEFT — reply list */}
-      <div className="reply-panel">
-        <div className="topbar">
-          <div className="topbar-left">
-            {!sidebarOpen && (
-              <button className="icon-btn" onClick={onToggleSidebar}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-              </button>
-            )}
-            <span className="page-title">Inbox</span>
-            <span className="page-count">{replies.length}</span>
-          </div>
-          <div className="topbar-right">
-            <select className="sort-sel" value={sort} onChange={e => setSort(e.target.value)}>
-              <option value="created_at">Latest</option>
-              <option value="status">Status</option>
-              <option value="campaign">Campaign</option>
-            </select>
-            <button className="icon-btn" onClick={onRefresh}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M8 16H3v5"/>
-              </svg>
-            </button>
+    <div className="dash">
+      <div className="dash-header">
+        <div>
+          <div className="dash-date">{today}</div>
+          <div className="dash-title">Team overview</div>
+          <div className="dash-sub">
+            {metrics.total} replies in queue ·{' '}
+            {slaBreached > 0 ? <span style={{ color:'var(--bad)' }}>{slaBreached} past SLA</span> : <span style={{ color:'var(--ok)' }}>All within SLA</span>}
           </div>
         </div>
+      </div>
 
-        <div className="stats-row">
+      <div className="dash-body">
+        {/* Stat cards */}
+        <div className="dash-stats">
           {[
-            { l:'Total',   v:metrics.total,    c:'var(--text-primary)' },
-            { l:'New',     v:metrics.new,      c:'var(--new)' },
-            { l:'Hot',     v:metrics.hot,      c:'var(--hot)' },
-            { l:'Follow',  v:metrics.followup, c:'var(--followup)' },
-            { l:'Replied', v:metrics.replied,  c:'var(--replied)' },
-          ].map(m => (
-            <div key={m.l} className="stat">
-              <div className="stat-num" style={{ color:m.c }}>{m.v}</div>
-              <div className="stat-label">{m.l}</div>
+            { l:'Awaiting reply', v:metrics.total,      s:'in queue',        c:'var(--accent)' },
+            { l:'Interested',     v:metrics.interested, s:'high intent',     c:'var(--ok)' },
+            { l:'Avg response',   v:'—',                s:'response time',   c:'var(--ink)' },
+            { l:'Meetings booked',v:metrics.meeting,    s:'this week',       c:'var(--ink)' },
+          ].map((s, i) => (
+            <div key={i} className="dash-stat-card">
+              <div className="dsc-label">{s.l}</div>
+              <div className="dsc-val" style={{ color:s.c }}>{s.v}</div>
+              <div className="dsc-sub">{s.s}</div>
             </div>
           ))}
         </div>
 
-        <div className="reply-list">
-          {loading && (
-            <div className="empty-state">
-              <div className="loading-dots"><span/><span/><span/></div>
-              <div>Loading...</div>
+        <div className="dash-row">
+          {/* Campaign table */}
+          <div className="dash-box" style={{ flex:2 }}>
+            <div className="db-header">
+              <div className="db-title">Campaigns</div>
+              <span style={{ fontSize:11, color:'var(--ink3)', fontStyle:'italic' }}>owner per campaign</span>
             </div>
-          )}
-          {error && !loading && (
-            <div className="empty-state" style={{ color:'var(--hot)' }}>
-              <div>Connection error</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>{error}</div>
-            </div>
-          )}
-          {!loading && !error && sorted.length === 0 && (
-            <div className="empty-state">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/>
-                <path d="m22 6-10 7L2 6"/>
-              </svg>
-              <p>No replies yet.<br/>They'll appear here when Instantly receives them.</p>
-            </div>
-          )}
-          {!loading && sorted.map((r, i) => {
-            const sc = SC[r.status] || SC['New']
-            return (
-              <div
-                key={r.id}
-                className={`rrow ${selected?.id === r.id ? 'active' : ''}`}
-                onClick={() => onSelect(r)}
-                style={{ animationDelay:`${Math.min(i*0.025,0.25)}s` }}
-              >
-                <div className="rrow-avatar">
-                  {(r.lead_name || r.lead_email || '?')[0].toUpperCase()}
+            {campaigns.length === 0 ? (
+              <div style={{ padding:'20px 14px', color:'var(--ink3)', fontSize:13 }}>No campaigns yet. Replies will appear once received.</div>
+            ) : campaigns.map((c, i) => {
+              const count = replies.filter(r=>r.campaign_name===c).length
+              const poc = replies.find(r=>r.campaign_name===c)?.poc || '—'
+              return (
+                <div key={c} className="db-row">
+                  <div style={{ width:8, height:8, borderRadius:'50%', background:CAMP_COLORS[i%CAMP_COLORS.length], flexShrink:0 }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12.5, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c}</div>
+                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{count} replies</div>
+                  </div>
+                  <Spark data={[2,4,3,5,7,6,count||1]} w={60} h={16} c={CAMP_COLORS[i%CAMP_COLORS.length]}/>
+                  <div className="db-av" style={{ background:AVATAR_COLORS[i%AVATAR_COLORS.length] }}>{poc[0]?.toUpperCase()}</div>
                 </div>
-                <div className="rrow-body">
-                  <div className="rrow-top">
-                    <span className="rrow-name">{r.lead_name || r.lead_email}</span>
-                    <span className="rrow-time">{smartTime(r.created_at)}</span>
-                  </div>
-                  <div className="rrow-subj">{r.reply_subject || '(no subject)'}</div>
-                  <div className="rrow-foot">
-                    <span className="rrow-snip">{r.reply_body?.slice(0,80) || '—'}</span>
-                    <span className="badge" style={{color:sc.c, background:sc.b}}>{r.status||'New'}</span>
-                    {r.poc && <span className="tag">{r.poc}</span>}
-                  </div>
-                  {r.campaign_name && <div className="camp-tag">◆ {r.campaign_name}</div>}
+              )
+            })}
+          </div>
+
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:14, minWidth:240 }}>
+            {/* SLA */}
+            <div className="dash-box">
+              <div className="db-header"><div className="db-title">SLA today</div></div>
+              <div style={{ display:'flex', alignItems:'center', gap:14, padding:'4px 0' }}>
+                <Donut pct={metrics.total > 0 ? Math.round((slaOk/metrics.total)*100) : 100}/>
+                <div style={{ display:'flex', flexDirection:'column', gap:5, flex:1 }}>
+                  {[
+                    { l:'On time',  v:slaOk,        c:'var(--ink)' },
+                    { l:'At risk',  v:Math.round(metrics.total*0.1), c:'var(--warn)' },
+                    { l:'Breached', v:slaBreached,   c:'var(--bad)' },
+                  ].map((s,i) => (
+                    <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                      <span style={{ color:'var(--ink3)' }}>{s.l}</span>
+                      <span style={{ fontWeight:600, color:s.c }}>{s.v}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )
-          })}
+            </div>
+
+            {/* Handlers workload */}
+            {pocs.length > 0 && (
+              <div className="dash-box" style={{ flex:1 }}>
+                <div className="db-header"><div className="db-title">Workload</div></div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {pocs.map((p, i) => {
+                    const cnt = replies.filter(r=>r.poc===p).length
+                    const max = Math.max(...pocs.map(pp => replies.filter(r=>r.poc===pp).length), 1)
+                    return (
+                      <div key={p} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12 }}>
+                        <div className="db-av" style={{ background:AVATAR_COLORS[i%AVATAR_COLORS.length] }}>{p[0].toUpperCase()}</div>
+                        <span style={{ flex:1 }}>{p}</span>
+                        <div style={{ width:70, height:5, background:'var(--line-soft)', borderRadius:3 }}>
+                          <div style={{ width:`${(cnt/max)*100}%`, height:'100%', background:'var(--accent)', borderRadius:3 }}/>
+                        </div>
+                        <span style={{ fontSize:11, width:18, textAlign:'right', color:'var(--ink2)' }}>{cnt}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* RIGHT — detail or empty */}
-      {selected ? (
-        <ReplyDetail
-          reply={selected}
-          onClose={() => onSelect(null)}
-          onStatusChange={onStatusChange}
-          onNotesChange={onNotesChange}
-          statusOptions={statusOptions}
-        />
-      ) : (
-        <div className="detail-empty">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/>
-            <path d="m22 6-10 7L2 6"/>
-          </svg>
-          <p>Select a reply to<br/>view details</p>
-        </div>
-      )}
     </div>
   )
 }

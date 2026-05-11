@@ -1,22 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './lib/supabase'
 import Sidebar from './components/Sidebar.jsx'
+import Inbox from './components/Inbox.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import './App.css'
 
-const STATUS_OPTIONS = ['New', 'Follow Up', 'Hot Lead', 'Replied', 'Not Interested']
+const STATUS_OPTIONS = ['New', 'Interested', 'Meeting', 'OOO', 'Nurture', 'Unsubscribe', 'Follow Up', 'Replied']
 
 export default function App() {
+  const [view, setView]           = useState('inbox')
   const [replies, setReplies]     = useState([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
   const [selected, setSelected]   = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [filters, setFilters]     = useState({ campaign:'', status:'', poc:'', search:'' })
   const [campaigns, setCampaigns] = useState([])
   const [pocs, setPocs]           = useState([])
 
-  const fetchReplies = useCallback(async () => {
+  const fetch = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -29,12 +30,12 @@ export default function App() {
       setCampaigns([...new Set((data||[]).map(r=>r.campaign_name).filter(Boolean))])
       setPocs([...new Set((data||[]).map(r=>r.poc).filter(Boolean))])
       setError(null)
-    } catch(err) { setError(err.message) }
+    } catch(e) { setError(e.message) }
     finally { setLoading(false) }
   }, [])
 
   useEffect(() => {
-    fetchReplies()
+    fetch()
     const ch = supabase.channel('rt')
       .on('postgres_changes', { event:'INSERT', schema:'public', table:'instantly_replies' }, p => {
         setReplies(prev => [p.new, ...prev])
@@ -47,14 +48,13 @@ export default function App() {
       })
       .subscribe()
     return () => supabase.removeChannel(ch)
-  }, [fetchReplies])
+  }, [fetch])
 
   const updateStatus = async (id, status) => {
     await supabase.from('instantly_replies').update({ status }).eq('id', id)
     setReplies(prev => prev.map(r => r.id===id ? {...r, status} : r))
     if (selected?.id===id) setSelected(p => ({...p, status}))
   }
-
   const updateNotes = async (id, sdr_notes) => {
     await supabase.from('instantly_replies').update({ sdr_notes }).eq('id', id)
     setReplies(prev => prev.map(r => r.id===id ? {...r, sdr_notes} : r))
@@ -76,44 +76,34 @@ export default function App() {
   })
 
   const metrics = {
-    total:   filtered.length,
-    new:     filtered.filter(r=>r.status==='New').length,
-    hot:     filtered.filter(r=>r.status==='Hot Lead').length,
-    followup:filtered.filter(r=>r.status==='Follow Up').length,
-    replied: filtered.filter(r=>r.status==='Replied').length,
-    notint:  filtered.filter(r=>r.status==='Not Interested').length,
+    total:   replies.length,
+    new:     replies.filter(r=>r.status==='New').length,
+    interested: replies.filter(r=>r.status==='Interested').length,
+    meeting: replies.filter(r=>r.status==='Meeting').length,
+    ooo:     replies.filter(r=>r.status==='OOO').length,
   }
 
   return (
-    <div className="app-layout">
-      {sidebarOpen && (
-        <Sidebar
-          open={sidebarOpen}
-          onToggle={() => setSidebarOpen(false)}
-          filters={filters}
-          setFilters={setFilters}
-          campaigns={campaigns}
-          pocs={pocs}
-          metrics={metrics}
-          statusOptions={STATUS_OPTIONS}
-          totalReplies={replies.length}
-        />
-      )}
-      <div className="main-area">
-        <Dashboard
-          replies={filtered}
-          loading={loading}
-          error={error}
-          metrics={metrics}
-          selected={selected}
-          onSelect={setSelected}
-          onRefresh={fetchReplies}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen(true)}
-          onStatusChange={updateStatus}
-          onNotesChange={updateNotes}
-          statusOptions={STATUS_OPTIONS}
-        />
+    <div className="app">
+      <Sidebar
+        view={view} setView={setView}
+        filters={filters} setFilters={setFilters}
+        campaigns={campaigns} pocs={pocs}
+        metrics={metrics} totalReplies={replies.length}
+      />
+      <div className="main">
+        {view === 'inbox' ? (
+          <Inbox
+            replies={filtered} loading={loading} error={error}
+            selected={selected} onSelect={setSelected}
+            onRefresh={fetch} filters={filters} setFilters={setFilters}
+            campaigns={campaigns} statusOptions={STATUS_OPTIONS}
+            onStatusChange={updateStatus} onNotesChange={updateNotes}
+            metrics={metrics}
+          />
+        ) : (
+          <Dashboard replies={replies} metrics={metrics} campaigns={campaigns} pocs={pocs} />
+        )}
       </div>
     </div>
   )

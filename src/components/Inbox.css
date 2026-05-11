@@ -1,0 +1,123 @@
+.inbox { display:flex; height:100%; overflow:hidden; }
+
+/* ── Left filter pane ── */
+.inbox-filters {
+  width: 192px; flex-shrink: 0;
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  padding: 16px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+  overflow-y: auto;
+}
+.if-title { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px; margin-bottom: 4px; }
+.if-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px; border-radius: 5px;
+  background: none; border: none;
+  color: var(--ink2); font-size: 12.5px; font-weight: 500;
+  text-align: left; width: 100%; cursor: pointer;
+  transition: background 0.1s;
+}
+.if-item:hover  { background: var(--line-soft); }
+.if-item.active { background: var(--line-soft); color: var(--ink); }
+.if-item-left   { display: flex; align-items: center; gap: 7px; }
+.if-badge       { font-size: 10.5px; color: var(--ink3); }
+
+.if-section { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px; margin: 12px 0 4px; }
+
+/* ── Reply list ── */
+.inbox-list {
+  width: 360px; flex-shrink: 0;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.il-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.il-title { font-size: 14px; font-weight: 600; }
+.il-count { color: var(--ink3); font-weight: 400; }
+
+.il-sort {
+  background: none; border: 1px solid var(--line); border-radius: 99px;
+  color: var(--ink2); font-size: 11.5px; padding: 3px 10px;
+  cursor: pointer; outline: none;
+}
+
+.il-scroll { flex:1; overflow-y:auto; }
+
+.il-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--line-soft);
+  cursor: pointer; transition: background 0.1s;
+  position: relative;
+  animation: fadeIn 0.15s ease both;
+}
+.il-row:hover  { background: var(--paper); }
+.il-row.active { background: var(--paper); }
+.il-row.active::before {
+  content: ''; position: absolute;
+  left: 0; top: 0; bottom: 0; width: 2.5px;
+  background: var(--accent);
+}
+.il-row.unread { background: var(--paper2); }
+.il-row.unread:hover { background: var(--paper); }
+
+.il-unread-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0; margin-top: 8px;
+}
+.il-no-dot { width: 6px; flex-shrink: 0; }
+
+.il-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+
+.il-body  { flex:1; min-width:0; }
+.il-top   { display:flex; align-items:baseline; gap:6px; margin-bottom:2px; }
+.il-name  { font-size:12.5px; font-weight:600; }
+.il-co    { font-size:11px; color:var(--ink3); }
+.il-time  { font-size:10.5px; color:var(--ink3); margin-left:auto; flex-shrink:0; }
+.il-subj  { font-size:12px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:2px; }
+.il-prev  { font-size:11.5px; color:var(--ink3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.il-foot  { display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
+
+.il-pill {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border: 1px solid; border-radius: 99px;
+  font-size: 11px; font-weight: 500; white-space: nowrap;
+}
+.il-camp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* empty state */
+.il-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; padding: 60px 20px;
+  color: var(--ink3); font-size: 13px; text-align: center;
+}
+.il-dots { display:flex; gap:4px; }
+.il-dots span {
+  width:5px; height:5px; border-radius:50%;
+  background:var(--ink3);
+  animation:pulse 1.2s infinite;
+}
+.il-dots span:nth-child(2){animation-delay:.2s}
+.il-dots span:nth-child(3){animation-delay:.4s}
+
+/* ── Detail pane ── */
+.inbox-detail {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg);
+}
+.id-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; color: var(--ink3); font-size: 13px; text-align: center;
+}
