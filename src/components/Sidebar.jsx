@@ -6,10 +6,11 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
   const toggle = (key, val) => setFilters(f => ({ ...f, [key]: f[key]===val ? '' : val }))
 
   const navItems = [
-    { id:'inbox',     label:'Inbox',      badge: totalReplies },
-    { id:'mine',      label:'My Replies', badge: metrics.new },
-    { id:'dashboard', label:'Team',       badge: null },
-    { id:'analytics', label:'Analytics',  badge: null },
+    { id:'inbox',     label:'Inbox',        badge: totalReplies },
+    { id:'mine',      label:'My Replies',   badge: metrics.new || null },
+    { id:'dashboard', label:'Team',         badge: null },
+    { id:'routing',   label:'Campaigns',    badge: campaigns.length || null },
+    { id:'analytics', label:'Analytics',    badge: null },
   ]
 
   return (
@@ -26,18 +27,14 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
         <input
           placeholder="Search replies…"
           value={filters.search}
-          onChange={e => setFilters(f => ({...f, search: e.target.value}))}
+          onChange={e => setFilters(f=>({...f,search:e.target.value}))}
         />
       </div>
 
       {navItems.map(n => (
-        <button
-          key={n.id}
-          className={`sb-nav-item ${view===n.id ? 'active' : ''}`}
-          onClick={() => setView(n.id)}
-        >
+        <button key={n.id} className={`sb-nav-item ${view===n.id?'active':''}`} onClick={()=>setView(n.id)}>
           <div className="sb-nav-item-left">
-            <NavIcon id={n.id} active={view===n.id} />
+            <NavIcon id={n.id} active={view===n.id}/>
             <span>{n.label}</span>
           </div>
           {n.badge != null && <span className="sb-nav-badge">{n.badge}</span>}
@@ -46,34 +43,27 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
 
       {campaigns.length > 0 && <>
         <div className="sb-section">Campaigns</div>
-        {campaigns.map((c, i) => (
-          <button
-            key={c}
-            className={`sb-camp-item ${filters.campaign===c ? 'active' : ''}`}
-            onClick={() => toggle('campaign', c)}
-            title={c}
-          >
-            <div className="sb-dot" style={{ background: CAMP_COLORS[i % CAMP_COLORS.length] }} />
+        {campaigns.map((c,i) => (
+          <button key={c} className={`sb-camp-item ${filters.campaign===c?'active':''}`}
+            onClick={()=>toggle('campaign',c)} title={c}>
+            <div className="sb-dot" style={{background:CAMP_COLORS[i%CAMP_COLORS.length]}}/>
             <span className="sb-camp-label">{c}</span>
+            <span className="sb-camp-count">{/* count */}</span>
           </button>
         ))}
       </>}
 
       {pocs.length > 0 && <>
         <div className="sb-section">Handlers</div>
-        {pocs.map(p => (
-          <button
-            key={p}
-            className={`sb-camp-item ${filters.poc===p ? 'active' : ''}`}
-            onClick={() => toggle('poc', p)}
-          >
-            <div className="sb-footer-av" style={{ width:18, height:18, fontSize:9 }}>{p[0].toUpperCase()}</div>
+        {pocs.map((p,i) => (
+          <button key={p} className={`sb-camp-item ${filters.poc===p?'active':''}`} onClick={()=>toggle('poc',p)}>
+            <div className="sb-footer-av" style={{width:18,height:18,fontSize:9}}>{p[0].toUpperCase()}</div>
             <span className="sb-camp-label">{p}</span>
           </button>
         ))}
       </>}
 
-      <div style={{ flex: 1 }} />
+      <div style={{flex:1}}/>
 
       <div className="sb-footer">
         <div className="sb-footer-av">A</div>
@@ -86,12 +76,13 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
   )
 }
 
-function NavIcon({ id, active }) {
+function NavIcon({id, active}) {
   const c = active ? 'var(--accent)' : 'var(--ink3)'
   const icons = {
-    inbox: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/><path d="m22 6-10 7L2 6"/></svg>,
-    mine:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+    inbox:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/><path d="m22 6-10 7L2 6"/></svg>,
+    mine:      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
     dashboard: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    routing:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>,
     analytics: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
   }
   return icons[id] || null
