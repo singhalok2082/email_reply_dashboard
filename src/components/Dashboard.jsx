@@ -1,132 +1,160 @@
+import { useState } from 'react'
 import './Dashboard.css'
 
 const CAMP_COLORS = ['#C96442','#7A8C99','#6B8E5A','#A98556','#9A6B8E','#5A7F8C']
 const AVATAR_COLORS = ['#C96442','#7A8C99','#A98556','#6B8E5A','#9A6B8E','#5A7F8C']
 
-function Donut({ pct=72, s=52, c='#C96442' }) {
-  const r = s/2-4, C = 2*Math.PI*r
+function Donut({ pct=70, s=64, c='#C96442' }) {
+  const r = s/2 - 6
+  const C = 2 * Math.PI * r
+  const dash = (pct / 100) * C
   return (
     <svg width={s} height={s}>
-      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke="var(--line-soft)" strokeWidth="5"/>
-      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke={c} strokeWidth="5" strokeLinecap="round"
-        strokeDasharray={`${(pct/100)*C} ${C}`} transform={`rotate(-90 ${s/2} ${s/2})`}/>
-      <text x={s/2} y={s/2+4} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--ink)">{pct}%</text>
+      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke="#E6DFD2" strokeWidth="5"/>
+      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke={c} strokeWidth="5"
+        strokeLinecap="round"
+        strokeDasharray={`${dash} ${C}`}
+        transform={`rotate(-90 ${s/2} ${s/2})`}/>
+      <text x={s/2} y={s/2+5} textAnchor="middle"
+        fontSize="13" fontWeight="700" fill="#2D2A26">{pct}%</text>
     </svg>
   )
 }
 
-function Spark({ data=[4,7,5,8,6,9,11], w=80, h=20, c='#C96442' }) {
-  const max = Math.max(...data), step = w/(data.length-1)
-  const pts = data.map((v,i) => `${i*step},${h-(v/max)*(h-4)-2}`).join(' ')
-  return <svg width={w} height={h}><polyline points={pts} fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-}
-
-export default function Dashboard({ replies, metrics, campaigns, pocs }) {
-  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })
-  const slaOk = Math.round(metrics.total * 0.84)
-  const slaBreached = Math.max(0, Math.round(metrics.total * 0.06))
+function CampaignCard({ camp, color, replies, poc, pocColor, i, onViewInbox }) {
+  const campReplies  = replies.filter(r => r.campaign_name === camp)
+  const newCount     = campReplies.filter(r => r.status === 'New').length
+  const interested   = campReplies.filter(r => r.status === 'Interested').length
+  const meetings     = campReplies.filter(r => r.status === 'Meeting').length
+  const total        = campReplies.length
+  const replied      = campReplies.filter(r => r.status === 'Replied').length
+  const pct          = total > 0 ? Math.round((replied / total) * 100) : Math.round(70 + i * 4)
 
   return (
-    <div className="dash">
-      <div className="dash-header">
-        <div>
-          <div className="dash-date">{today}</div>
-          <div className="dash-title">Team overview</div>
-          <div className="dash-sub">
-            {metrics.total} replies in queue ·{' '}
-            {slaBreached > 0 ? <span style={{ color:'var(--bad)' }}>{slaBreached} past SLA</span> : <span style={{ color:'var(--ok)' }}>All within SLA</span>}
+    <div className="camp-card">
+      <div className="cc-header">
+        <div className="cc-name-row">
+          <div className="cc-dot" style={{ background: color }}/>
+          <div className="cc-name">{camp}</div>
+          <span className="cc-active-pill">active</span>
+        </div>
+      </div>
+
+      <div className="cc-body">
+        <div className="cc-donut">
+          <Donut pct={pct} s={72} c={color}/>
+        </div>
+        <div className="cc-stats">
+          <div className="cc-stat">
+            <div className="cc-stat-val">{newCount}</div>
+            <div className="cc-stat-label">new replies</div>
+          </div>
+          <div className="cc-stat">
+            <div className="cc-stat-val" style={{ color:'var(--ok)' }}>{interested}</div>
+            <div className="cc-stat-label">interested</div>
+          </div>
+          <div className="cc-stat">
+            <div className="cc-stat-val" style={{ color:'var(--accent)' }}>{meetings}</div>
+            <div className="cc-stat-label">meetings</div>
           </div>
         </div>
       </div>
 
+      {/* Progress bar */}
+      <div className="cc-progress-track">
+        <div className="cc-progress-bar" style={{ width: `${pct}%`, background: color }}/>
+      </div>
+
+      <div className="cc-footer">
+        <div className="cc-owner">
+          <span style={{ fontSize:11, color:'var(--ink3)' }}>Owner</span>
+          <div className="cc-owner-av" style={{ background: pocColor }}>
+            {poc ? poc[0].toUpperCase() : '?'}
+          </div>
+          <span style={{ fontSize:12, fontWeight:500 }}>{poc || 'Unassigned'}</span>
+        </div>
+        <div style={{ display:'flex', gap:6 }}>
+          <button className="cc-btn" onClick={() => onViewInbox(camp)}>View inbox</button>
+          <button className="cc-btn">Settings</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Dashboard({ replies, metrics, campaigns, pocs, onViewInbox }) {
+  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })
+  const total = replies.length
+
+  // Build POC map from replies
+  const pocMap = {}
+  campaigns.forEach(c => {
+    const r = replies.find(rep => rep.campaign_name === c)
+    if (r?.poc) pocMap[c] = r.poc
+  })
+
+  return (
+    <div className="dash">
+      {/* Topbar */}
+      <div className="dash-topbar">
+        <div className="dash-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <span style={{ fontSize:12, color:'var(--ink3)' }}>Search replies, people, campaigns…</span>
+        </div>
+        <div style={{ flex:1 }}/>
+        <button className="dash-pill dashed">+ Add campaign</button>
+        <button className="dash-pill">Help</button>
+      </div>
+
       <div className="dash-body">
-        {/* Stat cards */}
-        <div className="dash-stats">
-          {[
-            { l:'Awaiting reply', v:metrics.total,      s:'in queue',        c:'var(--accent)' },
-            { l:'Interested',     v:metrics.interested, s:'high intent',     c:'var(--ok)' },
-            { l:'Avg response',   v:'—',                s:'response time',   c:'var(--ink)' },
-            { l:'Meetings booked',v:metrics.meeting,    s:'this week',       c:'var(--ink)' },
-          ].map((s, i) => (
-            <div key={i} className="dash-stat-card">
-              <div className="dsc-label">{s.l}</div>
-              <div className="dsc-val" style={{ color:s.c }}>{s.v}</div>
-              <div className="dsc-sub">{s.s}</div>
+        {/* Page heading */}
+        <div className="dash-ph">
+          <div>
+            <div className="dash-ph-title">Campaigns</div>
+            <div className="dash-ph-sub">
+              {campaigns.length} active · {total} replies routed today
             </div>
-          ))}
+          </div>
+          <button className="dash-pill" style={{ fontSize:13, padding:'7px 16px' }}>
+            + New campaign
+          </button>
         </div>
 
-        <div className="dash-row">
-          {/* Campaign table */}
-          <div className="dash-box" style={{ flex:2 }}>
-            <div className="db-header">
-              <div className="db-title">Campaigns</div>
-              <span style={{ fontSize:11, color:'var(--ink3)', fontStyle:'italic' }}>owner per campaign</span>
+        {/* Campaign cards grid */}
+        {campaigns.length === 0 ? (
+          <div className="dash-empty">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            <div>No campaigns yet</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>
+              Replies will appear here once received from Instantly
             </div>
-            {campaigns.length === 0 ? (
-              <div style={{ padding:'20px 14px', color:'var(--ink3)', fontSize:13 }}>No campaigns yet. Replies will appear once received.</div>
-            ) : campaigns.map((c, i) => {
-              const count = replies.filter(r=>r.campaign_name===c).length
-              const poc = replies.find(r=>r.campaign_name===c)?.poc || '—'
-              return (
-                <div key={c} className="db-row">
-                  <div style={{ width:8, height:8, borderRadius:'50%', background:CAMP_COLORS[i%CAMP_COLORS.length], flexShrink:0 }}/>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12.5, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c}</div>
-                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{count} replies</div>
-                  </div>
-                  <Spark data={[2,4,3,5,7,6,count||1]} w={60} h={16} c={CAMP_COLORS[i%CAMP_COLORS.length]}/>
-                  <div className="db-av" style={{ background:AVATAR_COLORS[i%AVATAR_COLORS.length] }}>{poc[0]?.toUpperCase()}</div>
-                </div>
-              )
-            })}
           </div>
-
-          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:14, minWidth:240 }}>
-            {/* SLA */}
-            <div className="dash-box">
-              <div className="db-header"><div className="db-title">SLA today</div></div>
-              <div style={{ display:'flex', alignItems:'center', gap:14, padding:'4px 0' }}>
-                <Donut pct={metrics.total > 0 ? Math.round((slaOk/metrics.total)*100) : 100}/>
-                <div style={{ display:'flex', flexDirection:'column', gap:5, flex:1 }}>
-                  {[
-                    { l:'On time',  v:slaOk,        c:'var(--ink)' },
-                    { l:'At risk',  v:Math.round(metrics.total*0.1), c:'var(--warn)' },
-                    { l:'Breached', v:slaBreached,   c:'var(--bad)' },
-                  ].map((s,i) => (
-                    <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-                      <span style={{ color:'var(--ink3)' }}>{s.l}</span>
-                      <span style={{ fontWeight:600, color:s.c }}>{s.v}</span>
-                    </div>
-                  ))}
-                </div>
+        ) : (
+          <div className="camp-grid">
+            {campaigns.map((c, i) => (
+              <CampaignCard
+                key={c}
+                camp={c}
+                color={CAMP_COLORS[i % CAMP_COLORS.length]}
+                replies={replies}
+                poc={pocMap[c] || pocs[i % pocs.length] || ''}
+                pocColor={AVATAR_COLORS[i % AVATAR_COLORS.length]}
+                i={i}
+                onViewInbox={onViewInbox || (() => {})}
+              />
+            ))}
+            {/* Add campaign placeholder */}
+            <div className="camp-card-add">
+              <div style={{ color:'var(--ink3)', fontSize:13 }}>
+                + Connect another campaign from Instantly
               </div>
             </div>
-
-            {/* Handlers workload */}
-            {pocs.length > 0 && (
-              <div className="dash-box" style={{ flex:1 }}>
-                <div className="db-header"><div className="db-title">Workload</div></div>
-                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                  {pocs.map((p, i) => {
-                    const cnt = replies.filter(r=>r.poc===p).length
-                    const max = Math.max(...pocs.map(pp => replies.filter(r=>r.poc===pp).length), 1)
-                    return (
-                      <div key={p} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12 }}>
-                        <div className="db-av" style={{ background:AVATAR_COLORS[i%AVATAR_COLORS.length] }}>{p[0].toUpperCase()}</div>
-                        <span style={{ flex:1 }}>{p}</span>
-                        <div style={{ width:70, height:5, background:'var(--line-soft)', borderRadius:3 }}>
-                          <div style={{ width:`${(cnt/max)*100}%`, height:'100%', background:'var(--accent)', borderRadius:3 }}/>
-                        </div>
-                        <span style={{ fontSize:11, width:18, textAlign:'right', color:'var(--ink2)' }}>{cnt}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

@@ -98,7 +98,7 @@ export default function App() {
         />
       )
       case 'mine': return <MyReplies replies={replies} pocs={pocs} metrics={metrics} onStatusChange={updateStatus} />
-      case 'dashboard': return <Dashboard replies={replies} metrics={metrics} campaigns={campaigns} pocs={pocs} />
+      case 'dashboard': return <Dashboard replies={replies} metrics={metrics} campaigns={campaigns} pocs={pocs} onViewInbox={c=>{setFilters(f=>({...f,campaign:c}));setView("inbox")}} />
       case 'routing': return <Mapping campaigns={campaigns} pocs={pocs} replies={replies} />
       case 'analytics': return <Analytics replies={replies} metrics={metrics} campaigns={campaigns} pocs={pocs} />
       default: return null
