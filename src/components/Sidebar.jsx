@@ -1,3 +1,4 @@
+import Profile from './Profile.jsx'
 import './Sidebar.css'
 
 const CAMP_COLORS = ['#C96442','#7A8C99','#6B8E5A','#A98556','#9A6B8E','#5A7F8C']
@@ -6,11 +7,11 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
   const toggle = (key, val) => setFilters(f => ({ ...f, [key]: f[key]===val ? '' : val }))
 
   const navItems = [
-    { id:'inbox',     label:'Inbox',        badge: totalReplies },
-    { id:'mine',      label:'My Replies',   badge: metrics.new || null },
-    { id:'dashboard', label:'Team',         badge: null },
-    { id:'routing',   label:'Campaigns',    badge: campaigns.length || null },
-    { id:'analytics', label:'Analytics',    badge: null },
+    { id:'inbox',     label:'Inbox',     badge: totalReplies },
+    { id:'mine',      label:'My Replies',badge: metrics.new || null },
+    { id:'dashboard', label:'Team',      badge: null },
+    { id:'routing',   label:'Campaigns', badge: campaigns.length || null },
+    { id:'analytics', label:'Analytics', badge: null },
   ]
 
   return (
@@ -27,7 +28,7 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
         <input
           placeholder="Search replies…"
           value={filters.search}
-          onChange={e => setFilters(f=>({...f,search:e.target.value}))}
+          onChange={e => setFilters(f => ({...f, search:e.target.value}))}
         />
       </div>
 
@@ -45,38 +46,37 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
         <div className="sb-section">Campaigns</div>
         {campaigns.map((c,i) => (
           <button key={c} className={`sb-camp-item ${filters.campaign===c?'active':''}`}
-            onClick={()=>toggle('campaign',c)} title={c}>
-            <div className="sb-dot" style={{background:CAMP_COLORS[i%CAMP_COLORS.length]}}/>
+            onClick={() => toggle('campaign',c)} title={c}>
+            <div className="sb-dot" style={{ background:CAMP_COLORS[i%CAMP_COLORS.length] }}/>
             <span className="sb-camp-label">{c}</span>
-            <span className="sb-camp-count">{/* count */}</span>
           </button>
         ))}
       </>}
 
       {pocs.length > 0 && <>
         <div className="sb-section">Handlers</div>
-        {pocs.map((p,i) => (
-          <button key={p} className={`sb-camp-item ${filters.poc===p?'active':''}`} onClick={()=>toggle('poc',p)}>
-            <div className="sb-footer-av" style={{width:18,height:18,fontSize:9}}>{p[0].toUpperCase()}</div>
+        {pocs.map(p => (
+          <button key={p} className={`sb-camp-item ${filters.poc===p?'active':''}`}
+            onClick={() => toggle('poc',p)}>
+            <div className="sb-footer-av" style={{width:18,height:18,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              {p[0].toUpperCase()}
+            </div>
             <span className="sb-camp-label">{p}</span>
           </button>
         ))}
       </>}
 
-      <div style={{flex:1}}/>
+      <div style={{ flex:1 }}/>
 
-      <div className="sb-footer">
-        <div className="sb-footer-av">A</div>
-        <div>
-          <div className="sb-footer-name">Alok Singh</div>
-          <div className="sb-footer-role">Manager</div>
-        </div>
+      {/* Profile section — replaces hardcoded footer */}
+      <div style={{ padding:'0 6px 10px' }}>
+        <Profile/>
       </div>
     </aside>
   )
 }
 
-function NavIcon({id, active}) {
+function NavIcon({ id, active }) {
   const c = active ? 'var(--accent)' : 'var(--ink3)'
   const icons = {
     inbox:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/><path d="m22 6-10 7L2 6"/></svg>,
