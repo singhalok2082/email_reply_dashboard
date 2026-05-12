@@ -1,18 +1,35 @@
-import Profile from './Profile.jsx'
+import { useState, useRef, useEffect } from 'react'
 import './Sidebar.css'
 
 const CAMP_COLORS = ['#C96442','#7A8C99','#6B8E5A','#A98556','#9A6B8E','#5A7F8C']
+const AVATAR_COLORS = ['#C96442','#7A8C99','#6B8E5A','#A98556','#9A6B8E','#5A7F8C']
 
-export default function Sidebar({ view, setView, filters, setFilters, campaigns, pocs, metrics, totalReplies }) {
+export default function Sidebar({ view, setView, filters, setFilters, campaigns, pocs,
+  metrics, totalReplies, session, onLogout, isAdmin }) {
+
   const toggle = (key, val) => setFilters(f => ({ ...f, [key]: f[key]===val ? '' : val }))
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const h = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [menuOpen])
 
   const navItems = [
     { id:'inbox',     label:'Inbox',     badge: totalReplies },
     { id:'mine',      label:'My Replies',badge: metrics.new || null },
     { id:'dashboard', label:'Team',      badge: null },
-    { id:'routing',   label:'Campaigns', badge: campaigns.length || null },
+    ...(isAdmin ? [{ id:'routing', label:'Campaigns', badge: campaigns.length || null }] : []),
     { id:'analytics', label:'Analytics', badge: null },
   ]
+
+  const name     = session?.name || 'You'
+  const role     = session?.is_admin ? '👑 Admin' : (session?.role || 'POC')
+  const color    = session?.color || '#C96442'
+  const initials = name.split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase()
 
   return (
     <aside className="sidebar">
@@ -25,11 +42,8 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
-        <input
-          placeholder="Search replies…"
-          value={filters.search}
-          onChange={e => setFilters(f => ({...f, search:e.target.value}))}
-        />
+        <input placeholder="Search replies…" value={filters.search}
+          onChange={e => setFilters(f => ({...f, search:e.target.value}))}/>
       </div>
 
       {navItems.map(n => (
@@ -47,18 +61,18 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
         {campaigns.map((c,i) => (
           <button key={c} className={`sb-camp-item ${filters.campaign===c?'active':''}`}
             onClick={() => toggle('campaign',c)} title={c}>
-            <div className="sb-dot" style={{ background:CAMP_COLORS[i%CAMP_COLORS.length] }}/>
+            <div className="sb-dot" style={{background:CAMP_COLORS[i%CAMP_COLORS.length]}}/>
             <span className="sb-camp-label">{c}</span>
           </button>
         ))}
       </>}
 
-      {pocs.length > 0 && <>
+      {isAdmin && pocs.length > 0 && <>
         <div className="sb-section">Handlers</div>
-        {pocs.map(p => (
+        {pocs.map((p,i) => (
           <button key={p} className={`sb-camp-item ${filters.poc===p?'active':''}`}
             onClick={() => toggle('poc',p)}>
-            <div className="sb-footer-av" style={{width:18,height:18,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+            <div style={{width:16,height:16,borderRadius:'50%',background:AVATAR_COLORS[i%AVATAR_COLORS.length],color:'#fff',fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
               {p[0].toUpperCase()}
             </div>
             <span className="sb-camp-label">{p}</span>
@@ -66,11 +80,38 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
         ))}
       </>}
 
-      <div style={{ flex:1 }}/>
+      <div style={{flex:1}}/>
 
-      {/* Profile section — replaces hardcoded footer */}
-      <div style={{ padding:'0 6px 10px' }}>
-        <Profile/>
+      {/* Profile footer with menu */}
+      <div className="sb-profile-wrap" ref={menuRef}>
+        {menuOpen && (
+          <div className="sb-profile-menu">
+            <div className="spm-info">
+              <div className="spm-name">{name}</div>
+              <div className="spm-role">{role}</div>
+              {session?.email && <div className="spm-email">{session.email}</div>}
+              {session?.company && <div className="spm-email">{session.company}</div>}
+            </div>
+            <div className="spm-divider"/>
+            <button className="spm-item" onClick={() => { setView('routing'); setMenuOpen(false) }}>
+              ⚙️  Settings
+            </button>
+            <button className="spm-item logout" onClick={() => { setMenuOpen(false); onLogout() }}>
+              ← Log out
+            </button>
+          </div>
+        )}
+
+        <button className="sb-profile-btn" onClick={() => setMenuOpen(o=>!o)}>
+          <div className="sb-pf-av" style={{background: color}}>{initials}</div>
+          <div className="sb-pf-info">
+            <div className="sb-pf-name">{name}</div>
+            <div className="sb-pf-role">{role}</div>
+          </div>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+            <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+          </svg>
+        </button>
       </div>
     </aside>
   )

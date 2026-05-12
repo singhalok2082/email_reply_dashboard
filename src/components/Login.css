@@ -1,0 +1,120 @@
+.login-wrap {
+  min-height: 100vh; width: 100%;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+
+.login-card {
+  background: var(--paper2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 32px 28px;
+  width: 100%; max-width: 360px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px;
+}
+
+.login-brand {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px;
+}
+.login-logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--accent); color: #fff;
+  font-size: 16px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.login-brand-name { font-size: 16px; font-weight: 700; }
+
+.login-title    { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 2px; }
+.login-subtitle { font-size: 13px; color: var(--ink3); text-align: center; margin-bottom: 16px; }
+
+/* User list */
+.login-users { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+
+.login-user-btn {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: none;
+  cursor: pointer; text-align: left; transition: all 0.15s;
+  font-family: var(--font);
+}
+.login-user-btn:hover { background: var(--line-soft); border-color: var(--border-light, var(--line)); }
+
+.lub-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  color: #fff; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.lub-info { flex: 1; min-width: 0; }
+.lub-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.lub-role { font-size: 12px; color: var(--ink3); margin-top: 1px; }
+
+/* PIN screen */
+.login-back {
+  align-self: flex-start; font-size: 12px; color: var(--ink3);
+  background: none; border: none; cursor: pointer;
+  padding: 0; margin-bottom: 12px; font-family: var(--font);
+  transition: color 0.1s;
+}
+.login-back:hover { color: var(--ink); }
+
+.login-av-large {
+  width: 60px; height: 60px; border-radius: 50%;
+  color: #fff; font-size: 20px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin: 8px 0;
+}
+
+.login-continue {
+  width: 100%; padding: 12px; border-radius: 10px;
+  background: var(--accent); border: none; color: #fff;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s; font-family: var(--font);
+  margin-top: 10px;
+}
+.login-continue:hover { opacity: 0.88; }
+
+/* PIN dots */
+.pin-dots {
+  display: flex; gap: 14px; margin: 16px 0 10px;
+}
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--line); background: none;
+  transition: all 0.15s;
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+
+.login-error {
+  font-size: 12px; color: var(--bad); margin-bottom: 4px;
+}
+
+/* PIN grid */
+.pin-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; width: 100%; max-width: 240px;
+  margin-top: 8px;
+}
+.pin-key {
+  aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid var(--line); background: none;
+  font-size: 20px; font-weight: 500; color: var(--ink);
+  cursor: pointer; transition: all 0.12s; font-family: var(--font);
+}
+.pin-key:hover:not(:disabled) { background: var(--line-soft); }
+.pin-key:active { background: var(--line); }
+.pin-key.invisible { visibility: hidden; }
+
+/* Loading */
+.login-loading { padding: 20px 0; }
+.login-dots { display: flex; gap: 6px; justify-content: center; }
+.login-dots span {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ink3); animation: pulse 1.2s infinite;
+}
+.login-dots span:nth-child(2) { animation-delay: .2s; }
+.login-dots span:nth-child(3) { animation-delay: .4s; }
