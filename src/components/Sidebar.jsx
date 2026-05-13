@@ -22,7 +22,7 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
     { id:'inbox',     label:'Inbox',     badge: totalReplies },
     { id:'mine',      label:'My Replies',badge: metrics.new || null },
     { id:'dashboard', label:'Team',      badge: null },
-    ...(isAdmin ? [{ id:'routing', label:'Campaigns', badge: campaigns.length || null }] : []),
+    ...(isAdmin ? [{ id:'admin', label:'Admin Panel', badge: null }, { id:'routing', label:'Campaigns', badge: campaigns.length || null }] : []),
     { id:'analytics', label:'Analytics', badge: null },
   ]
 
@@ -138,6 +138,7 @@ function NavIcon({ id, active }) {
     inbox:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/><path d="m22 6-10 7L2 6"/></svg>,
     mine:      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
     dashboard: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    admin:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
     routing:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>,
     analytics: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
   }

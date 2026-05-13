@@ -48,7 +48,7 @@ function getDomain(email) {
 }
 
 export default function Inbox({ replies, loading, error, selected, onSelect, onRefresh,
-  filters, setFilters, campaigns, statusOptions, onStatusChange, onNotesChange, metrics }) {
+  filters, setFilters, campaigns, statusOptions, onStatusChange, onNotesChange, metrics, pocs, onReassign, isAdmin }) {
 
   const [sort, setSort] = useState('newest')
 
@@ -246,6 +246,9 @@ export default function Inbox({ replies, loading, error, selected, onSelect, onR
             onNotesChange={onNotesChange}
             statusOptions={statusOptions}
             campaigns={campaigns}
+            pocs={pocs}
+            onReassign={onReassign}
+            isAdmin={isAdmin}
           />
         ) : (
           <div className="id-empty">

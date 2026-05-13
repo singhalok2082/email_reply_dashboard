@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format, parseISO, formatDistanceToNow } from 'date-fns'
 import './ConversationDetail.css'
 
@@ -33,7 +33,48 @@ function getDomain(email) {
   return p.replace(/\.(com|org|net|io|ai)$/,'')
 }
 
-export default function ConversationDetail({ reply, onClose, onStatusChange, onNotesChange, statusOptions, campaigns }) {
+
+function ReassignBtn({ reply, pocs, onReassign, isAdmin }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  if (!isAdmin) return null
+  return (
+    <div style={{position:'relative'}} ref={ref}>
+      <button className="conv-top-btn" onClick={() => setOpen(o=>!o)}>Reassign ▾</button>
+      {open && (
+        <div style={{
+          position:'absolute', top:'calc(100%+4px)', right:0, zIndex:200,
+          background:'var(--paper2)', border:'1px solid var(--line)',
+          borderRadius:9, boxShadow:'0 6px 20px rgba(0,0,0,0.12)',
+          minWidth:160, overflow:'hidden'
+        }}>
+          {(pocs||[]).map(p => (
+            <button key={p} style={{
+              width:'100%', padding:'9px 14px', border:'none', background:'none',
+              fontSize:13, color: p===reply.poc?'var(--accent)':'var(--ink)',
+              cursor:'pointer', textAlign:'left', fontFamily:'var(--font)',
+              fontWeight: p===reply.poc?600:400,
+              transition:'background 0.1s'
+            }}
+            onMouseEnter={e=>e.target.style.background='var(--line-soft)'}
+            onMouseLeave={e=>e.target.style.background='none'}
+            onClick={() => { onReassign && onReassign(reply.id, p); setOpen(false) }}>
+              {p} {p===reply.poc && '(current)'}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function ConversationDetail({ reply, onClose, onStatusChange, onNotesChange, statusOptions, campaigns, pocs, onReassign, isAdmin }) {
   const [notes,  setNotes]  = useState(reply?.sdr_notes || '')
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
@@ -86,7 +127,7 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
             </span>
           )}
           <div className="conv-spacer"/>
-          <button className="conv-top-btn">Reassign</button>
+          <ReassignBtn reply={reply} pocs={pocs||[]} onReassign={onReassign} isAdmin={isAdmin}/>
           <button className="conv-top-btn">Snooze</button>
           <button className="conv-top-btn primary"
             onClick={() => onStatusChange(reply.id, 'Replied')}>
