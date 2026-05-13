@@ -22,8 +22,9 @@ export default function App() {
   const [error,     setError]        = useState(null)
   const [selected,  setSelected]     = useState(null)
   const [filters,   setFilters]      = useState({ campaign:'', status:'', poc:'', search:'' })
-  const [campaigns, setCampaigns]    = useState([])
-  const [pocs,      setPocs]         = useState([])
+  const [campaigns,    setCampaigns]    = useState([])
+  const [pocs,         setPocs]         = useState([])
+  const [allHandlers,  setAllHandlers]  = useState([])
 
   useEffect(() => {
     const s = getSession()
@@ -39,6 +40,12 @@ export default function App() {
 
   const admin   = isAdmin(session)
   const pocName = session?.name
+
+  // Load all handlers from poc_profiles (for reassign dropdown + sidebar)
+  const fetchHandlers = useCallback(async () => {
+    const { data } = await supabase.from('poc_profiles').select('name, color').order('name')
+    if (data) setAllHandlers(data.map(h => h.name).filter(Boolean))
+  }, [])
 
   const fetchReplies = useCallback(async () => {
     if (!session) return
@@ -71,11 +78,12 @@ export default function App() {
       setError(null)
     } catch(e) { setError(e.message) }
     finally { setLoading(false) }
-  }, [session, admin, pocName])
+  }, [session, admin, pocName, fetchHandlers])
 
   useEffect(() => {
     if (!session) return
     fetchReplies()
+    fetchHandlers()
     const ch = supabase.channel('rt_main')
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'instantly_replies'}, p => {
         if (!admin && p.new.poc !== pocName) return
@@ -148,7 +156,7 @@ export default function App() {
           campaigns={campaigns} statusOptions={STATUS_OPTIONS}
           onStatusChange={updateStatus} onNotesChange={updateNotes}
           onReassign={reassignReply}
-          metrics={metrics} pocs={pocs} isAdmin={admin}
+          metrics={metrics} pocs={allHandlers.length>0?allHandlers:pocs} isAdmin={admin}
         />
       )
       case 'mine': return (
@@ -161,7 +169,7 @@ export default function App() {
         />
       )
       case 'admin': return admin ? (
-        <AdminPanel campaigns={campaigns} replies={replies} isAdmin={admin}/>
+        <AdminPanel campaigns={campaigns} replies={replies} isAdmin={admin} allHandlers={allHandlers}/>
       ) : (
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',flexDirection:'column',gap:10,color:'var(--ink3)'}}>
           <span style={{fontSize:28}}>🔒</span>
@@ -170,7 +178,7 @@ export default function App() {
         </div>
       )
       case 'routing': return admin ? (
-        <Mapping campaigns={campaigns} pocs={pocs} replies={replies}/>
+        <Mapping campaigns={campaigns} pocs={allHandlers.length>0?allHandlers:pocs} replies={replies}/>
       ) : null
       case 'analytics': return (
         <Analytics replies={replies} metrics={metrics} campaigns={campaigns} pocs={pocs}/>
@@ -184,7 +192,7 @@ export default function App() {
       <Sidebar
         view={view} setView={v=>{setView(v);setSelected(null)}}
         filters={filters} setFilters={setFilters}
-        campaigns={campaigns} pocs={admin?pocs:[]}
+        campaigns={campaigns} pocs={admin?(allHandlers.length>0?allHandlers:pocs):[]}
         metrics={metrics} totalReplies={replies.length}
         session={session} onLogout={handleLogout} isAdmin={admin}
       />
