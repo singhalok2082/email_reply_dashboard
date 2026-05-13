@@ -181,3 +181,12 @@
 }
 .status-micro-pill:hover { border-color:var(--ink3); color:var(--ink); }
 .status-micro-pill.active { font-weight:600; }
+
+.rail-job-link {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 10px; border-radius:6px;
+  background:var(--accent-soft); border:1px solid var(--accent);
+  color:var(--accent); font-size:12px; font-weight:500;
+  text-decoration:none; transition:all 0.15s; margin-top:4px;
+}
+.rail-job-link:hover { background:var(--accent); color:#fff; }

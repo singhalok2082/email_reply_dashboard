@@ -212,7 +212,44 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
               {reply.lead_email}
             </div>
           )}
+          {reply.company && (
+            <div className="rail-info-row">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              </svg>
+              {reply.company}
+            </div>
+          )}
+          {reply.lead_title && (
+            <div className="rail-info-row">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              </svg>
+              {reply.lead_title}
+            </div>
+          )}
         </div>
+
+        {/* Job URL */}
+        {reply.job_url && (
+          <>
+            <div className="rail-divider"/>
+            <div>
+              <div className="rail-section-label">Job posting</div>
+              <a href={reply.job_url} target="_blank" rel="noopener noreferrer"
+                className="rail-job-link">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                View job posting
+              </a>
+              <div style={{fontSize:10.5,color:'var(--ink3)',marginTop:4,wordBreak:'break-all',lineHeight:1.4}}>
+                {reply.job_url.replace(/^https?:\/\//, '').slice(0,60)}{reply.job_url.length>60?'…':''}
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="rail-divider"/>
 
