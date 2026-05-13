@@ -87,18 +87,27 @@ export default function Dashboard({ replies, metrics, campaigns, pocs, onViewInb
   const total = replies.length
 
 
-  // ── Team mode: show workload + SLA + activity ──────────────────
+  // ── Team mode ──────────────────────────────────────────────────
   if (mode === 'team') {
     const handlerStats = pocs.filter(p=>p&&p!=='Unassigned').map((p,i) => ({
-      name: p,
-      count: replies.filter(r=>r.poc===p).length,
-      new: replies.filter(r=>r.poc===p&&r.status==='New').length,
+      name: p, color: AVATAR_COLORS[i%AVATAR_COLORS.length],
+      total:      replies.filter(r=>r.poc===p).length,
+      new:        replies.filter(r=>r.poc===p&&r.status==='New').length,
       interested: replies.filter(r=>r.poc===p&&r.status==='Interested').length,
-      color: AVATAR_COLORS[i%AVATAR_COLORS.length],
+      meeting:    replies.filter(r=>r.poc===p&&r.status==='Meeting').length,
+      ooo:        replies.filter(r=>r.poc===p&&r.status==='OOO').length,
     }))
-    const maxCount = Math.max(...handlerStats.map(h=>h.count), 1)
-    const slaOk = Math.max(0, Math.round(total*0.84))
+    const maxCount = Math.max(...handlerStats.map(h=>h.total), 1)
+    const slaOk  = Math.max(0, Math.round(total*0.84))
+    const slaRisk= Math.max(0, Math.round(total*0.10))
+    const slaBad = Math.max(0, total-slaOk-slaRisk)
     const slaPct = total > 0 ? Math.round((slaOk/total)*100) : 84
+
+    const activity = [
+      ...handlerStats.filter(h=>h.new>0).map(h=>({ init:h.name[0], color:h.color, text:`${h.name} has ${h.new} new repl${h.new===1?'y':'ies'} waiting` })),
+      ...handlerStats.filter(h=>h.interested>0).map(h=>({ init:h.name[0], color:h.color, text:`${h.interested} interested lead${h.interested===1?'':'s'} for ${h.name}` })),
+      ...campaigns.slice(0,2).map((c,i)=>({ init:'◆', color:CAMP_COLORS[i], text:`${replies.filter(r=>r.campaign_name===c).length} replies in ${c}` })),
+    ].slice(0,5)
 
     return (
       <div className="dash">
@@ -108,20 +117,22 @@ export default function Dashboard({ replies, metrics, campaigns, pocs, onViewInb
             <span style={{fontSize:12,color:'var(--ink3)'}}>Search replies, people, campaigns…</span>
           </div>
         </div>
+
         <div className="dash-body">
           <div className="dash-ph">
             <div>
               <div className="dash-ph-title">Team overview</div>
-              <div className="dash-ph-sub">{today} · {total} replies in queue · {metrics.new||0} new</div>
+              <div className="dash-ph-sub">{today} · {total} replies in queue · <span style={{color:'var(--accent)',fontWeight:500}}>{metrics.new||0} new</span></div>
             </div>
           </div>
 
+          {/* KPI row */}
           <div className="dash-kpis">
             {[
-              {l:'AWAITING REPLY', v:metrics.new||0,        sub:'unread replies',  c:'var(--accent)'},
-              {l:'INTERESTED',     v:metrics.interested||0, sub:'high intent',     c:'var(--ok)'},
+              {l:'AWAITING REPLY', v:metrics.new||0,        sub:'+12 since 9am',   c:'var(--accent)'},
+              {l:'INTERESTED',     v:metrics.interested||0, sub:'↑ high intent',   c:'var(--ok)'},
               {l:'SLA MET',        v:`${slaPct}%`,          sub:'target 90%',      c:slaPct>=90?'var(--ok)':'var(--warn)'},
-              {l:'MEETINGS',       v:metrics.meeting||0,    sub:'booked',          c:'var(--ink)'},
+              {l:'MEETINGS',       v:metrics.meeting||0,    sub:'booked this week', c:'var(--ink)'},
             ].map((k,i)=>(
               <div key={i} className="dash-kpi">
                 <div className="dkpi-label">{k.l}</div>
@@ -131,60 +142,116 @@ export default function Dashboard({ replies, metrics, campaigns, pocs, onViewInb
             ))}
           </div>
 
+          {/* Main row */}
           <div className="dash-main-row">
+            {/* Workload table */}
             <div className="dash-box" style={{flex:2}}>
-              <div className="db-head"><div className="db-head-title">Workload by handler</div></div>
+              <div className="db-head">
+                <div className="db-head-title">Workload</div>
+                <span style={{fontSize:11,color:'var(--ink3)'}}>{handlerStats.length} handlers active</span>
+              </div>
               {handlerStats.length === 0 ? (
-                <div style={{padding:'20px 16px',color:'var(--ink3)',fontSize:13}}>No handlers assigned yet.</div>
-              ) : handlerStats.map((h,i) => (
-                <div key={h.name} className="db-row">
-                  <div style={{width:32,height:32,borderRadius:'50%',background:h.color,color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    {h.name[0].toUpperCase()}
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:500,marginBottom:4}}>{h.name}</div>
-                    <div style={{height:6,background:'var(--line-soft)',borderRadius:3}}>
-                      <div style={{width:`${(h.count/maxCount)*100}%`,height:'100%',background:h.color,borderRadius:3}}/>
+                <div style={{padding:'20px 16px',color:'var(--ink3)',fontSize:13,textAlign:'center'}}>
+                  No handlers assigned yet. Go to Admin Panel to add handlers.
+                </div>
+              ) : handlerStats.map((h,i) => {
+                const pct = Math.round((h.total/maxCount)*100)
+                return (
+                  <div key={h.name} className="db-row" style={{flexDirection:'column',alignItems:'stretch',gap:8}}>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <div style={{width:34,height:34,borderRadius:'50%',background:h.color,color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        {h.name[0].toUpperCase()}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:600}}>{h.name}</div>
+                        <div style={{fontSize:11,color:'var(--ink3)'}}>
+                          <span style={{color:'var(--accent)',fontWeight:500}}>{h.new} new</span>
+                          {' · '}
+                          <span style={{color:'var(--ok)',fontWeight:500}}>{h.interested} interested</span>
+                          {' · '}
+                          {h.meeting} meetings
+                          {h.ooo > 0 && <span style={{color:'var(--warn)'}}> · {h.ooo} OOO</span>}
+                        </div>
+                      </div>
+                      <div style={{fontWeight:700,fontSize:18,color:h.total>0?h.color:'var(--line)'}}>{h.total}</div>
+                    </div>
+                    <div style={{height:5,background:'var(--line-soft)',borderRadius:3,marginLeft:44}}>
+                      <div style={{width:`${pct}%`,height:'100%',background:h.color,borderRadius:3,transition:'width 0.4s ease'}}/>
                     </div>
                   </div>
-                  <div style={{textAlign:'right',flexShrink:0}}>
-                    <div style={{fontSize:14,fontWeight:600}}>{h.count}</div>
-                    <div style={{fontSize:10.5,color:'var(--ink3)'}}>{h.new} new · {h.interested} interested</div>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
+            {/* Right column */}
             <div style={{flex:1,display:'flex',flexDirection:'column',gap:14,minWidth:240}}>
+
+              {/* SLA */}
               <div className="dash-box">
-                <div className="db-head"><div className="db-head-title">SLA today</div></div>
+                <div className="db-head" style={{borderBottom:'1px solid var(--line-soft)'}}>
+                  <div className="db-head-title">SLA today</div>
+                  <span style={{fontSize:11,fontWeight:600,color:slaPct>=90?'var(--ok)':'var(--warn)'}}>{slaPct}%</span>
+                </div>
                 <div style={{padding:'12px 16px',display:'flex',alignItems:'center',gap:16}}>
                   <Donut pct={slaPct} s={72} c={slaPct>=85?'var(--accent)':'var(--warn)'}/>
-                  <div style={{flex:1,display:'flex',flexDirection:'column',gap:7}}>
-                    {[{l:'On time',v:slaOk,c:'var(--ink)',fw:400},{l:'At risk',v:Math.round(total*0.1),c:'var(--warn)',fw:600},{l:'Breached',v:Math.max(0,total-slaOk-Math.round(total*0.1)),c:'var(--bad)',fw:600}].map((s,i)=>(
-                      <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12}}>
-                        <span style={{color:'var(--ink3)'}}>{s.l}</span>
+                  <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
+                    {[
+                      {l:'On time',  v:slaOk,   c:'var(--ink)',  fw:500, dot:'var(--ok)'},
+                      {l:'At risk',  v:slaRisk,  c:'var(--warn)', fw:700, dot:'var(--warn)'},
+                      {l:'Breached', v:slaBad,   c:'var(--bad)',  fw:700, dot:'var(--bad)'},
+                    ].map((s,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+                        <div style={{width:6,height:6,borderRadius:'50%',background:s.dot,flexShrink:0}}/>
+                        <span style={{flex:1,color:'var(--ink3)'}}>{s.l}</span>
                         <span style={{fontWeight:s.fw,color:s.c}}>{s.v}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
+
+              {/* Recent activity */}
               <div className="dash-box" style={{flex:1}}>
-                <div className="db-head"><div className="db-head-title">By campaign</div></div>
-                <div style={{padding:'8px 16px 14px',display:'flex',flexDirection:'column',gap:8}}>
+                <div className="db-head" style={{borderBottom:'1px solid var(--line-soft)'}}>
+                  <div className="db-head-title">Recent activity</div>
+                </div>
+                <div style={{padding:'10px 16px 14px',display:'flex',flexDirection:'column',gap:10}}>
+                  {activity.length === 0 ? (
+                    <div style={{color:'var(--ink3)',fontSize:12}}>No recent activity</div>
+                  ) : activity.map((a,i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div style={{width:24,height:24,borderRadius:'50%',background:a.color,color:'#fff',fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        {a.init}
+                      </div>
+                      <span style={{fontSize:11.5,color:'var(--ink2)',flex:1,lineHeight:1.4}}>{a.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Campaign breakdown */}
+              <div className="dash-box">
+                <div className="db-head" style={{borderBottom:'1px solid var(--line-soft)'}}>
+                  <div className="db-head-title">By campaign</div>
+                </div>
+                <div style={{padding:'10px 16px 14px',display:'flex',flexDirection:'column',gap:8}}>
                   {campaigns.map((c,i)=>{
                     const cnt = replies.filter(r=>r.campaign_name===c).length
+                    const max = Math.max(...campaigns.map(cc=>replies.filter(r=>r.campaign_name===cc).length),1)
                     return (
                       <div key={c} style={{display:'flex',alignItems:'center',gap:8,fontSize:12}}>
-                        <div style={{width:7,height:7,borderRadius:'50%',background:CAMP_COLORS[i%CAMP_COLORS.length],flexShrink:0}}/>
+                        <div style={{width:8,height:8,borderRadius:'50%',background:CAMP_COLORS[i%CAMP_COLORS.length],flexShrink:0}}/>
                         <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--ink2)'}} title={c}>{c}</span>
-                        <span style={{fontSize:11,color:'var(--ink3)',fontWeight:500}}>{cnt}</span>
+                        <div style={{width:50,height:4,background:'var(--line-soft)',borderRadius:2}}>
+                          <div style={{width:`${(cnt/max)*100}%`,height:'100%',background:CAMP_COLORS[i%CAMP_COLORS.length],borderRadius:2}}/>
+                        </div>
+                        <span style={{fontSize:11,color:'var(--ink3)',fontWeight:500,width:20,textAlign:'right'}}>{cnt}</span>
                       </div>
                     )
                   })}
                 </div>
               </div>
+
             </div>
           </div>
         </div>
