@@ -7,6 +7,7 @@ import Inbox from './components/Inbox.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import MyReplies from './components/MyReplies.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
+import Mapping from './components/Mapping.jsx'
 import Analytics from './components/Analytics.jsx'
 import './App.css'
 
@@ -168,6 +169,9 @@ export default function App() {
           <div style={{fontSize:12}}>Only the admin can access this panel.</div>
         </div>
       )
+      case 'routing': return admin ? (
+        <Mapping campaigns={campaigns} pocs={pocs} replies={replies}/>
+      ) : null
       case 'analytics': return (
         <Analytics replies={replies} metrics={metrics} campaigns={campaigns} pocs={pocs}/>
       )

@@ -69,7 +69,7 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
           {campaigns.map((c,i) => (
             <button key={c}
               className={`sb-camp-item ${filters.campaign===c?'active':''}`}
-              onClick={() => toggle('campaign',c)} title={c}>
+              onClick={() => { toggle('campaign',c); setView('inbox') }} title={c}>
               <div className="sb-dot" style={{background:CAMP_COLORS[i%CAMP_COLORS.length]}}/>
               <span className="sb-camp-label">{c}</span>
             </button>
@@ -82,7 +82,7 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
           {pocs.map((p,i) => (
             <button key={p}
               className={`sb-camp-item ${filters.poc===p?'active':''}`}
-              onClick={() => toggle('poc',p)}>
+              onClick={() => { toggle('poc',p); setView('inbox') }}>
               <div style={{
                 width:16, height:16, borderRadius:'50%',
                 background:AVATAR_COLORS[i%AVATAR_COLORS.length],
@@ -107,10 +107,13 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
             </div>
             <div className="spm-divider"/>
             {isAdmin && (
-              <button className="spm-item" onClick={() => { setView('routing'); setMenuOpen(false) }}>
-                ⚙️  Settings
+              <button className="spm-item" onClick={() => { setView('admin'); setMenuOpen(false) }}>
+                ⚙️  Admin Panel
               </button>
             )}
+            <button className="spm-item" onClick={() => { setView('routing'); setMenuOpen(false) }}>
+              🗺️  Routing rules
+            </button>
             <button className="spm-item logout" onClick={() => { setMenuOpen(false); onLogout() }}>
               ← Log out
             </button>
