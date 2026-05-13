@@ -77,9 +77,9 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
         </>}
 
         {/* Handlers — admin only */}
-        {isAdmin && pocs.length > 0 && <>
+        {isAdmin && pocs.filter(p=>p&&p!=='Unassigned').length > 0 && <>
           <div className="sb-section">Handlers</div>
-          {pocs.map((p,i) => (
+          {pocs.filter(p=>p&&p!=='Unassigned').map((p,i) => (
             <button key={p}
               className={`sb-camp-item ${filters.poc===p?'active':''}`}
               onClick={() => { toggle('poc',p); setView('inbox') }}>
