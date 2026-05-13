@@ -163,7 +163,14 @@ export default function App() {
         <MyReplies replies={replies} pocs={pocs} metrics={metrics} onStatusChange={updateStatus}/>
       )
       case 'dashboard': return (
-        <Dashboard replies={replies} metrics={metrics} campaigns={campaigns} pocs={pocs}
+        <Dashboard mode="team" replies={replies} metrics={metrics} campaigns={campaigns}
+          pocs={allHandlers.length>0?allHandlers:pocs} isAdmin={admin}
+          onViewInbox={c=>{setFilters(f=>({...f,campaign:c}));setView('inbox')}}
+        />
+      )
+      case 'campaigns': return (
+        <Dashboard mode="campaigns" replies={replies} metrics={metrics} campaigns={campaigns}
+          pocs={pocs}
           onViewInbox={c=>{setFilters(f=>({...f,campaign:c}));setView('inbox')}}
           isAdmin={admin}
         />

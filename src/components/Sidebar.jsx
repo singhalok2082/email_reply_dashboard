@@ -22,7 +22,8 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
     { id:'inbox',     label:'Inbox',     badge: totalReplies },
     { id:'mine',      label:'My Replies',badge: metrics.new || null },
     { id:'dashboard', label:'Team',      badge: null },
-    ...(isAdmin ? [{ id:'admin', label:'Admin Panel', badge: null }, { id:'routing', label:'Campaigns', badge: campaigns.length || null }] : []),
+    { id:'campaigns', label:'Campaigns',  badge: campaigns.length || null },
+    ...(isAdmin ? [{ id:'admin', label:'Admin Panel', badge: null }] : []),
     { id:'analytics', label:'Analytics', badge: null },
   ]
 
@@ -142,6 +143,7 @@ function NavIcon({ id, active }) {
     mine:      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
     dashboard: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
     admin:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+    campaigns: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
     routing:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>,
     analytics: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
   }
