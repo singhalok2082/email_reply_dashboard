@@ -88,7 +88,7 @@ export default function Login({ onLogin }) {
                     <div className="lub-info">
                       <div className="lub-name">{u.name}</div>
                       <div className="lub-role">
-                        {u.is_admin ? '👑 Admin' : u.role || 'POC'}
+                        {u.is_admin ? 'Admin' : u.role || 'POC'}
                         {u.company ? ` · ${u.company}` : ''}
                       </div>
                     </div>

@@ -28,7 +28,7 @@ export default function Sidebar({ view, setView, filters, setFilters, campaigns,
   ]
 
   const name     = session?.name || 'You'
-  const role     = session?.is_admin ? '👑 Admin' : (session?.role || 'POC')
+  const role     = session?.is_admin ? 'Admin' : (session?.role || 'POC')
   const color    = session?.color || '#C96442'
   const initials = name.split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase()
 
