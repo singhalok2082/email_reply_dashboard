@@ -16,15 +16,12 @@ const AVATAR_COLORS  = ['#C96442','#7A8C99','#A98556','#6B8E5A','#9A6B8E','#5A7F
 const CAMP_COLORS    = ['#C96442','#7A8C99','#6B8E5A','#A98556','#9A6B8E','#5A7F8C']
 const STATUS_OPTIONS = ['New','Interested','Meeting','OOO','Nurture','Unsubscribe','Follow Up','Replied']
 
-function fmt(ts)  { try { return format(parseISO(ts), 'MMM d · h:mma') } catch { return ts||'—' } }
+function fmt(ts)  { try { return format(parseISO(ts), 'EEE, MMM d, h:mm a') } catch { return ts||'—' } }
+function fmtShort(ts) { try { return format(parseISO(ts), 'MMM d, h:mm a') } catch { return '' } }
 function ago(ts)  { try { return formatDistanceToNow(parseISO(ts), { addSuffix:true }) } catch { return '' } }
 function initials(name, email) {
   if (name) return name.split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase()
   return (email||'?')[0].toUpperCase()
-}
-function getDomain(email) {
-  if (!email) return ''
-  return (email.split('@')[1]||'').replace(/\.(com|org|net|io|ai)$/,'')
 }
 
 function ReassignBtn({ reply, pocs, onReassign, isAdmin }) {
@@ -39,24 +36,15 @@ function ReassignBtn({ reply, pocs, onReassign, isAdmin }) {
   if (!isAdmin) return null
   return (
     <div style={{position:'relative'}} ref={ref}>
-      <button className="conv-top-btn" onClick={() => setOpen(o=>!o)}>Reassign ▾</button>
+      <button className="g-action-btn" onClick={() => setOpen(o=>!o)}>
+        Reassign ▾
+      </button>
       {open && (
-        <div style={{
-          position:'absolute', top:'calc(100% + 4px)', right:0, zIndex:200,
-          background:'var(--paper2)', border:'1px solid var(--line)',
-          borderRadius:9, boxShadow:'0 6px 20px rgba(0,0,0,0.12)',
-          minWidth:160, overflow:'hidden'
-        }}>
+        <div className="g-dropdown">
           {(pocs||[]).map(p => (
-            <button key={p} style={{
-              width:'100%', padding:'9px 14px', border:'none', background:'none',
-              fontSize:13, color: p===reply.poc?'var(--accent)':'var(--ink)',
-              cursor:'pointer', textAlign:'left', fontFamily:'var(--font)',
-              fontWeight: p===reply.poc?600:400,
-            }}
-            onMouseEnter={e=>e.currentTarget.style.background='var(--line-soft)'}
-            onMouseLeave={e=>e.currentTarget.style.background='none'}
-            onClick={() => { onReassign?.(reply.id, p); setOpen(false) }}>
+            <button key={p} className="g-dropdown-item"
+              style={{fontWeight: p===reply.poc?600:400, color: p===reply.poc?'var(--accent)':'var(--ink)'}}
+              onClick={() => { onReassign?.(reply.id, p); setOpen(false) }}>
               {p} {p===reply.poc && '✓'}
             </button>
           ))}
@@ -66,39 +54,67 @@ function ReassignBtn({ reply, pocs, onReassign, isAdmin }) {
   )
 }
 
-// Single email message bubble — Gmail style
-function EmailBubble({ msg, reply, pocColor, leadColor, isOurs, expanded, onToggle }) {
-  const color = isOurs ? pocColor : leadColor
-  const name  = isOurs ? (reply.poc || 'You') : (reply.lead_name || reply.lead_email)
-  const email = isOurs ? reply.sending_email : reply.lead_email
+// Single email in thread — exactly like Gmail
+function EmailMessage({ msg, isOurs, reply, pocColor, leadColor, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const [showDetails, setShowDetails] = useState(false)
+
+  const name    = isOurs ? (reply.poc || 'You') : (reply.lead_name || reply.lead_email)
+  const email   = isOurs ? reply.sending_email : reply.lead_email
+  const toEmail = isOurs ? reply.lead_email : reply.sending_email
+  const color   = isOurs ? pocColor : leadColor
+  const ts      = msg.timestamp || reply.created_at
 
   return (
-    <div className={`email-bubble ${isOurs ? 'ours' : 'theirs'}`}>
-      <div className="eb-header" onClick={onToggle} style={{cursor: onToggle ? 'pointer' : 'default'}}>
-        <div className="eb-av" style={{background: color}}>
+    <div className={`g-message ${open ? 'open' : 'collapsed'}`}>
+      {/* Header — always visible */}
+      <div className="g-msg-header" onClick={() => !open && setOpen(true)}>
+        <div className="g-msg-av" style={{background: color}}>
           {isOurs ? (reply.poc||'Y')[0].toUpperCase() : initials(reply.lead_name, reply.lead_email)}
         </div>
-        <div className="eb-meta">
-          <div className="eb-from">
-            <strong>{name}</strong>
-            <span className="eb-addr">&lt;{email}&gt;</span>
-          </div>
-          <div className="eb-sub-row">
-            {!expanded && <span className="eb-preview">{msg.body?.slice(0,80)}…</span>}
-            <span className="eb-time">{fmt(msg.timestamp || reply.created_at)}</span>
-          </div>
+        <div className="g-msg-meta">
+          {open ? (
+            <>
+              <div className="g-msg-from-row">
+                <span className="g-msg-name">{name}</span>
+                <span className="g-msg-addr">&lt;{email}&gt;</span>
+              </div>
+              <div className="g-msg-to-row" onClick={() => setShowDetails(d=>!d)}>
+                <span>to {toEmail}</span>
+                <span className="g-msg-chevron">{showDetails ? '▲' : '▼'}</span>
+              </div>
+              {showDetails && (
+                <div className="g-msg-details">
+                  <div><span>from:</span> {email}</div>
+                  <div><span>to:</span> {toEmail}</div>
+                  <div><span>date:</span> {fmt(ts)}</div>
+                  <div><span>subject:</span> {reply.reply_subject}</div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="g-msg-name">{name}</span>
+              <span className="g-msg-preview">{(msg.body||'').slice(0,80)}…</span>
+            </>
+          )}
         </div>
-        {onToggle && (
-          <div className="eb-toggle">{expanded ? '▲' : '▼'}</div>
-        )}
+        <div className="g-msg-time-row">
+          <span className="g-msg-time">{fmtShort(ts)}</span>
+          {open && (
+            <button className="g-msg-collapse" onClick={e => { e.stopPropagation(); setOpen(false) }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="18 15 12 9 6 15"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
-      {expanded && (
-        <div className="eb-body">
-          <div className="eb-to-row">
-            <span className="eb-to-label">To:</span>
-            <span className="eb-to-addr">{isOurs ? reply.lead_email : reply.sending_email}</span>
-          </div>
-          <div className="eb-text">{msg.body || '—'}</div>
+
+      {/* Body — only when open */}
+      {open && (
+        <div className="g-msg-body">
+          <div className="g-msg-text">{msg.body || reply.reply_body || '—'}</div>
         </div>
       )}
     </div>
@@ -108,28 +124,19 @@ function EmailBubble({ msg, reply, pocColor, leadColor, isOurs, expanded, onTogg
 export default function ConversationDetail({ reply, onClose, onStatusChange, onNotesChange,
   statusOptions, campaigns, pocs, onReassign, isAdmin }) {
 
-  const [notes,    setNotes]    = useState(reply?.sdr_notes || '')
-  const [saving,   setSaving]   = useState(false)
-  const [saved,    setSaved]    = useState(false)
-  const [aiDraft,  setAiDraft]  = useState('')
-  const [editing,  setEditing]  = useState(false)
-  // Track which bubbles are expanded (last one always expanded)
-  const [expanded, setExpanded] = useState({})
+  const [notes,   setNotes]   = useState(reply?.sdr_notes || '')
+  const [saving,  setSaving]  = useState(false)
+  const [saved,   setSaved]   = useState(false)
+  const [aiDraft, setAiDraft] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
 
   useEffect(() => {
     setNotes(reply?.sdr_notes || '')
-    setSaved(false)
-    setEditing(false)
-    // Build thread messages
-    const msgs = buildThreadMessages()
-    // Expand the last message by default
-    const initExpanded = {}
-    msgs.forEach((m, i) => { initExpanded[i] = i === msgs.length - 1 })
-    setExpanded(initExpanded)
-    // Generate AI draft
+    setSaved(false); setEditing(false)
     const firstName = reply?.lead_name?.split(' ')[0] || 'there'
     const poc = reply?.poc || 'Alok'
-    setAiDraft(`Hi ${firstName} — thanks for getting back to me!\n\nHappy to connect and share more. Would you have 15 minutes this week for a quick call?\n\n— ${poc}`)
+    setAiDraft(`Hi ${firstName},\n\nThanks for getting back to me!\n\nHappy to share more details. Would you have 15 minutes this week for a quick call?\n\nBest,\n${poc}`)
   }, [reply?.id])
 
   const saveNotes = async () => {
@@ -139,238 +146,56 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
     setTimeout(() => setSaved(false), 2500)
   }
 
-  // Build ordered thread messages from stored data
-  const buildThreadMessages = () => {
-    const msgs = []
-
-    // Try parsing stored thread_messages JSON first
+  // Build thread messages
+  const buildMsgs = () => {
     if (reply.thread_messages) {
       try {
-        const parsed = JSON.parse(reply.thread_messages)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Reverse so oldest first (Gmail order)
-          return [...parsed].reverse()
-        }
+        const p = JSON.parse(reply.thread_messages)
+        if (Array.isArray(p) && p.length > 0) return [...p].reverse()
       } catch (_) {}
     }
-
-    // Fallback: build from available fields
-    // 1. Sent email (outbound)
+    const msgs = []
     if (reply.sent_email_body) {
-      msgs.push({
-        direction: 'outbound',
-        body: reply.sent_email_body,
-        timestamp: reply.created_at,
-      })
+      msgs.push({ direction:'outbound', body: reply.sent_email_body, timestamp: reply.created_at })
     }
-
-    // 2. Lead reply (inbound) — always present
-    msgs.push({
-      direction: 'inbound',
-      body: reply.reply_body || reply.reply_full || '—',
-      timestamp: reply.created_at,
-    })
-
+    msgs.push({ direction:'inbound', body: reply.reply_body || '—', timestamp: reply.created_at })
     return msgs
   }
 
-  const threadMsgs = buildThreadMessages()
+  const msgs = buildMsgs()
   const im       = INTENT_META[reply?.status] || INTENT_META['New']
   const campIdx  = (campaigns||[]).indexOf(reply?.campaign_name)
   const campColor= CAMP_COLORS[campIdx >= 0 ? campIdx % CAMP_COLORS.length : 0]
   const leadColor= AVATAR_COLORS[0]
   const pocColor = AVATAR_COLORS[1]
-
-  const activity = [
-    { dot: im.c,      text: `AI tagged "${(reply.status||'New').toLowerCase()}"`, time: ago(reply.created_at) },
-    { dot: '#7A8C99', text: `Routed to ${reply.poc || 'handler'}`,                time: ago(reply.created_at) },
-    { dot: '#6B8E5A', text: 'Reply received',                                     time: ago(reply.created_at) },
-    { dot: '#B8AFA0', text: 'Sequence sent',                                      time: fmt(reply.created_at) },
-  ]
+  const firstName = reply?.lead_name?.split(' ')[0] || 'there'
 
   return (
-    <div className="conv">
-      {/* ── Main thread ── */}
-      <div className="conv-main">
-        {/* Top bar */}
-        <div className="conv-topbar">
-          <button className="conv-back" onClick={onClose}>← Inbox</button>
-          {reply.status && (
-            <span className="conv-topbar-pill" style={{color:im.c, borderColor:im.c+'60', background:im.b}}>
-              {reply.status.toLowerCase()}
-            </span>
-          )}
-          {reply.campaign_name && (
-            <span className="conv-topbar-pill" style={{color:campColor, borderColor:campColor+'60', background:campColor+'12'}}>
-              <span style={{width:7,height:7,borderRadius:'50%',background:campColor,display:'inline-block',marginRight:3}}/>
-              {reply.campaign_name}
-            </span>
-          )}
-          <div className="conv-spacer"/>
+    <div className="g-conv">
+      {/* ── Top action bar ── */}
+      <div className="g-topbar">
+        <button className="g-back-btn" onClick={onClose}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Inbox
+        </button>
+
+        <div style={{flex:1}}/>
+
+        <div className="g-topbar-actions">
           <ReassignBtn reply={reply} pocs={pocs||[]} onReassign={onReassign} isAdmin={isAdmin}/>
-          <button className="conv-top-btn">Snooze</button>
-          <button className="conv-top-btn primary" onClick={() => onStatusChange(reply.id, 'Replied')}>
+          <button className="g-action-btn" onClick={() => onStatusChange(reply.id,'Replied')}>
             Mark done
           </button>
-        </div>
-
-        {/* Gmail-like thread */}
-        <div className="conv-thread">
-          {/* Subject */}
-          <div className="conv-subject-block">
-            <div className="conv-subject">{reply.reply_subject || '(no subject)'}</div>
-            <div className="conv-thread-meta">
-              {threadMsgs.length} message{threadMsgs.length!==1?'s':''} · started {fmt(reply.created_at)}
-            </div>
-          </div>
-
-          {/* Email bubbles — Gmail style */}
-          <div className="thread-bubbles">
-            {threadMsgs.map((msg, i) => {
-              const isOurs = msg.direction === 'outbound'
-              const isLast = i === threadMsgs.length - 1
-              return (
-                <EmailBubble
-                  key={i}
-                  msg={msg}
-                  reply={reply}
-                  pocColor={pocColor}
-                  leadColor={leadColor}
-                  isOurs={isOurs}
-                  expanded={expanded[i] !== false}
-                  onToggle={!isLast ? () => setExpanded(e => ({...e, [i]: !e[i]})) : undefined}
-                />
-              )
-            })}
-          </div>
-
-          {/* Reply compose box — Gmail style */}
-          <div className="conv-compose">
-            <div className="compose-header">
-              <div className="compose-av" style={{background: pocColor}}>
-                {reply.poc ? reply.poc[0].toUpperCase() : 'A'}
-              </div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:12,color:'var(--ink3)'}}>
-                  Reply to <strong style={{color:'var(--ink)'}}>{reply.lead_name || reply.lead_email}</strong>
-                </div>
-              </div>
-              <span className="conv-ai-pill-sm">AI draft</span>
-            </div>
-
-            {editing ? (
-              <textarea
-                className="compose-textarea"
-                value={aiDraft}
-                onChange={e => setAiDraft(e.target.value)}
-                autoFocus
-                rows={6}
-              />
-            ) : (
-              <div className="compose-preview" onClick={() => setEditing(true)}>
-                {aiDraft}
-              </div>
-            )}
-
-            <div className="compose-actions">
-              <button className="compose-send">Send</button>
-              <button className="compose-ghost" onClick={() => setEditing(e=>!e)}>
-                {editing ? 'Preview' : 'Edit'}
-              </button>
-              <button className="compose-ghost" onClick={() => {
-                const fn = reply?.lead_name?.split(' ')[0] || 'there'
-                const poc = reply?.poc || 'Alok'
-                setAiDraft(`Hi ${fn} — thanks for getting back to me!\n\nHappy to connect and share more. Would you have 15 minutes this week for a quick call?\n\n— ${poc}`)
-              }}>Regenerate</button>
-              <button className="compose-ghost">Try other tone ▾</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Right rail ── */}
-      <div className="conv-rail">
-        {/* Lead */}
-        <div>
-          <div className="rail-lead-av" style={{background: leadColor}}>
-            {initials(reply.lead_name, reply.lead_email)}
-          </div>
-          <div className="rail-lead-name">{reply.lead_name || reply.lead_email}</div>
-          {getDomain(reply.lead_email) && <div className="rail-lead-title">{getDomain(reply.lead_email)}</div>}
-        </div>
-
-        {/* Contact info */}
-        <div>
-          {reply.lead_email && (
-            <div className="rail-info-row">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <path d="m22 6-10 7L2 6"/>
-              </svg>
-              {reply.lead_email}
-            </div>
-          )}
-          {reply.company && (
-            <div className="rail-info-row">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              </svg>
-              {reply.company}
-            </div>
-          )}
-        </div>
-
-        {reply.job_url && (
-          <>
-            <div className="rail-divider"/>
-            <div>
-              <div className="rail-section-label">Job posting</div>
-              <a href={reply.job_url} target="_blank" rel="noopener noreferrer" className="rail-job-link">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-                View job posting
-              </a>
-            </div>
-          </>
-        )}
-
-        <div className="rail-divider"/>
-
-        {/* Campaign */}
-        <div>
-          <div className="rail-section-label">Campaign</div>
-          {reply.campaign_name && (
-            <div className="rail-camp-name">
-              <div className="rail-camp-dot" style={{background: campColor}}/>
-              {reply.campaign_name}
-            </div>
-          )}
-          {reply.poc && (
-            <div className="rail-owner-row">
-              <span style={{fontSize:11,color:'var(--ink3)'}}>Owner</span>
-              <div className="rail-mini-av" style={{background: pocColor}}>{reply.poc[0].toUpperCase()}</div>
-              <span style={{fontSize:12}}>{reply.poc}</span>
-            </div>
-          )}
-          {reply.sending_email && (
-            <div style={{fontSize:11,color:'var(--ink3)',marginTop:2}}>From {reply.sending_email}</div>
-          )}
-        </div>
-
-        <div className="rail-divider"/>
-
-        {/* Status */}
-        <div>
-          <div className="rail-section-label">Status</div>
-          <div className="status-pills-row">
-            {STATUS_OPTIONS.map(s => {
+          {/* Status quick-set */}
+          <div className="g-status-chips">
+            {['New','Interested','Meeting','OOO','Unsubscribe'].map(s => {
               const sm = INTENT_META[s] || {}
               const active = reply.status === s
               return (
                 <button key={s}
-                  className={`status-micro-pill ${active?'active':''}`}
+                  className={`g-status-chip ${active?'active':''}`}
                   style={active ? {color:sm.c, borderColor:sm.c, background:sm.b} : {}}
                   onClick={() => onStatusChange(reply.id, s)}>
                   {s}
@@ -379,31 +204,174 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
             })}
           </div>
         </div>
+      </div>
 
-        <div className="rail-divider"/>
-
-        {/* Notes */}
-        <div>
-          <div className="rail-section-label">Notes</div>
-          <textarea className="rail-notes-input" value={notes}
-            onChange={e => setNotes(e.target.value)} placeholder="+ Add note"/>
-          <button className={`rail-save-btn ${saved?'saved':''}`} onClick={saveNotes} disabled={saving}>
-            {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
-          </button>
+      {/* ── Main content ── */}
+      <div className="g-content">
+        {/* Subject + campaign pill */}
+        <div className="g-subject-row">
+          <h2 className="g-subject">{reply.reply_subject || '(no subject)'}</h2>
+          <div style={{display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
+            {reply.campaign_name && (
+              <span className="g-camp-pill" style={{borderColor:campColor+'60', color:campColor, background:campColor+'12'}}>
+                <span style={{width:7,height:7,borderRadius:'50%',background:campColor,display:'inline-block'}}/>
+                {reply.campaign_name}
+              </span>
+            )}
+            {reply.status && (
+              <span className="g-camp-pill" style={{borderColor:im.c+'60', color:im.c, background:im.b}}>
+                {reply.status}
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="rail-divider"/>
-
-        {/* Activity */}
-        <div>
-          <div className="rail-section-label">Activity</div>
-          {activity.map((a, i) => (
-            <div key={i} className="rail-activity-item">
-              <div className="rail-act-dot" style={{background: a.dot}}/>
-              <span>{a.text} · <span style={{color:'var(--ink3)'}}>{a.time}</span></span>
-            </div>
+        {/* Email thread */}
+        <div className="g-thread">
+          {msgs.map((msg, i) => (
+            <EmailMessage
+              key={i}
+              msg={msg}
+              isOurs={msg.direction === 'outbound'}
+              reply={reply}
+              pocColor={pocColor}
+              leadColor={leadColor}
+              defaultOpen={i === msgs.length - 1}
+            />
           ))}
         </div>
+
+        {/* Reply compose — Gmail style */}
+        <div className="g-compose">
+          <div className="g-compose-header">
+            <div className="g-compose-av" style={{background: pocColor}}>
+              {(reply.poc||'A')[0].toUpperCase()}
+            </div>
+            <div style={{flex:1}}>
+              <div className="g-compose-to">
+                Reply to <strong>{reply.lead_name || reply.lead_email}</strong>
+                <span className="g-compose-addr">&lt;{reply.lead_email}&gt;</span>
+              </div>
+            </div>
+            <span className="g-ai-badge">AI draft</span>
+          </div>
+
+          <div className="g-compose-body">
+            {editing ? (
+              <textarea
+                className="g-compose-textarea"
+                value={aiDraft}
+                onChange={e => setAiDraft(e.target.value)}
+                autoFocus
+              />
+            ) : (
+              <div className="g-compose-preview" onClick={() => setEditing(true)}>
+                {aiDraft}
+              </div>
+            )}
+          </div>
+
+          <div className="g-compose-footer">
+            <button className="g-send-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              Send
+            </button>
+            <button className="g-compose-ghost" onClick={() => setEditing(e=>!e)}>
+              {editing ? 'Preview' : 'Edit'}
+            </button>
+            <button className="g-compose-ghost" onClick={() => {
+              setAiDraft(`Hi ${firstName},\n\nThanks for getting back to me!\n\nHappy to share more details. Would you have 15 minutes this week for a quick call?\n\nBest,\n${reply.poc||'Alok'}`)
+            }}>Regenerate</button>
+            <button className="g-compose-ghost">Tone ▾</button>
+
+            {/* Right side info */}
+            <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:8}}>
+              {reply.sending_email && (
+                <span style={{fontSize:11, color:'var(--ink3)'}}>from {reply.sending_email}</span>
+              )}
+              <button className="g-compose-ghost" onClick={() => setShowInfo(s=>!s)}>
+                {showInfo ? 'Hide info' : 'Lead info'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Lead info panel — shown below compose when toggled */}
+        {showInfo && (
+          <div className="g-info-panel">
+            <div className="g-info-row">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span>{reply.lead_name || '—'}</span>
+            </div>
+            <div className="g-info-row">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <path d="m22 6-10 7L2 6"/>
+              </svg>
+              <span>{reply.lead_email}</span>
+            </div>
+            {reply.company && (
+              <div className="g-info-row">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                </svg>
+                <span>{reply.company}</span>
+              </div>
+            )}
+            {reply.poc && (
+              <div className="g-info-row">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+                </svg>
+                <span>Handler: {reply.poc}</span>
+              </div>
+            )}
+            {reply.job_url && (
+              <div className="g-info-row">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                <a href={reply.job_url} target="_blank" rel="noopener noreferrer"
+                  style={{color:'var(--accent)'}}>View job posting</a>
+              </div>
+            )}
+
+            <div style={{borderTop:'1px solid var(--line-soft)', marginTop:10, paddingTop:10}}>
+              <div style={{fontSize:10.5, fontWeight:600, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:6}}>Notes</div>
+              <textarea className="g-notes-input" value={notes}
+                onChange={e => setNotes(e.target.value)} placeholder="Add notes…"/>
+              <button className={`g-notes-save ${saved?'saved':''}`} onClick={saveNotes} disabled={saving}>
+                {saving?'Saving…':saved?'✓ Saved':'Save'}
+              </button>
+            </div>
+
+            <div style={{borderTop:'1px solid var(--line-soft)', marginTop:10, paddingTop:10}}>
+              <div style={{fontSize:10.5, fontWeight:600, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:8}}>Status</div>
+              <div style={{display:'flex', flexWrap:'wrap', gap:5}}>
+                {STATUS_OPTIONS.map(s => {
+                  const sm = INTENT_META[s]||{}
+                  const active = reply.status===s
+                  return (
+                    <button key={s}
+                      style={{padding:'3px 10px', borderRadius:99, border:'1px solid', fontSize:11,
+                        cursor:'pointer', fontFamily:'var(--font)',
+                        color: active?sm.c:'var(--ink3)',
+                        borderColor: active?sm.c:'var(--line)',
+                        background: active?sm.b:'none'}}
+                      onClick={() => onStatusChange(reply.id, s)}>
+                      {s}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
