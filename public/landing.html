@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Replyloop — Never Miss a Reply Again</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;overflow-x:hidden;background:#060402;}
+body{font-family:'DM Sans',sans-serif;color:#fff;}
+
+/* VIDEO */
+.video-wrap{position:fixed;inset:0;z-index:0;overflow:hidden;}
+.video-wrap video{
+  position:absolute;width:100%;height:100%;
+  object-fit:cover;object-position:center 30%;
+  opacity:0;
+}
+.video-overlay{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(to bottom, rgba(6,4,2,0.72) 0%, rgba(6,4,2,0.1) 30%, rgba(6,4,2,0.1) 60%, rgba(6,4,2,0.88) 85%, #060402 100%),
+    linear-gradient(to right, rgba(6,4,2,0.4) 0%, transparent 30%, transparent 70%, rgba(6,4,2,0.4) 100%);
+}
+
+/* GLASS */
+.glass{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,0.13);
+  position:relative;overflow:hidden;
+}
+.glass::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(145deg,rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.06) 40%,rgba(255,255,255,0) 70%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+}
+
+/* LAYOUT */
+.page{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;}
+
+/* NAV */
+nav{
+  padding:24px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-mark{
+  width:32px;height:32px;border-radius:9px;
+  background:#C96442;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:15px;color:#fff;
+}
+.logo-name{
+  font-family:'Instrument Serif',serif;
+  font-size:20px;color:#fff;letter-spacing:-0.2px;
+}
+.nav-center{display:flex;gap:28px;}
+.nav-center a{
+  font-size:13.5px;font-weight:500;
+  color:rgba(255,255,255,0.6);
+  text-decoration:none;transition:color .15s;
+}
+.nav-center a:hover{color:#fff;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.btn-ghost{
+  background:none;border:none;color:rgba(255,255,255,0.65);
+  font-size:13.5px;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  padding:8px 14px;border-radius:99px;
+  transition:color .15s;
+}
+.btn-ghost:hover{color:#fff;}
+.btn-cta{
+  padding:9px 22px;border-radius:99px;
+  background:#C96442;border:none;
+  color:#fff;font-size:13.5px;font-weight:600;
+  font-family:'DM Sans',sans-serif;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  transition:background .15s,transform .15s;
+}
+.btn-cta:hover{background:#b5562e;transform:translateY(-1px);}
+.btn-cta svg{width:14px;height:14px;}
+
+/* HERO */
+.hero{
+  flex:1;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;
+  padding:60px 24px 40px;
+  min-height:100vh;
+}
+
+.live-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 14px;border-radius:99px;
+  font-size:12px;font-weight:500;letter-spacing:0.2px;
+  color:rgba(255,255,255,0.75);
+  margin-bottom:36px;
+}
+.live-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#4ade80;box-shadow:0 0 6px #4ade80;
+  animation:blink 2s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+h1{
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(52px,9vw,100px);
+  line-height:0.95;
+  letter-spacing:-2px;
+  color:#fff;
+  margin-bottom:10px;
+}
+h1 em{
+  font-style:italic;
+  color:transparent;
+  -webkit-text-stroke:1.5px rgba(255,255,255,0.45);
+}
+.hero-sub{
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(28px,5vw,54px);
+  color:rgba(255,255,255,0.35);
+  letter-spacing:-0.5px;
+  margin-bottom:40px;
+}
+.hero-desc{
+  max-width:480px;margin:0 auto 44px;
+  font-size:15.5px;line-height:1.75;
+  color:rgba(255,255,255,0.5);
+  font-weight:400;
+}
+
+/* email bar */
+.email-bar{
+  max-width:400px;width:100%;margin:0 auto 72px;
+  display:flex;align-items:center;
+  border-radius:99px;padding:4px 4px 4px 20px;
+}
+.email-bar input{
+  flex:1;background:none;border:none;outline:none;
+  color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;
+  padding:8px 0;
+}
+.email-bar input::placeholder{color:rgba(255,255,255,0.3);}
+.email-bar button{
+  background:#fff;color:#0A0705;border:none;cursor:pointer;
+  padding:10px 20px;border-radius:99px;
+  font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;
+  white-space:nowrap;transition:background .15s;
+}
+.email-bar button:hover{background:#f0ece6;}
+
+/* STATS */
+.stats{
+  display:flex;justify-content:center;
+  border-top:1px solid rgba(255,255,255,0.07);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  width:100%;max-width:780px;
+  margin:0 auto;
+}
+.stat{
+  flex:1;padding:28px 20px;text-align:center;
+  border-right:1px solid rgba(255,255,255,0.07);
+}
+.stat:last-child{border-right:none;}
+.stat-n{
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(32px,5vw,48px);
+  color:#fff;line-height:1;margin-bottom:6px;
+}
+.stat-n span{color:#C96442;}
+.stat-l{font-size:11px;font-weight:500;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1.2px;}
+
+/* FEATURES */
+.section{padding:100px 40px;max-width:1100px;margin:0 auto;width:100%;}
+.section-label{
+  text-align:center;font-size:11px;font-weight:600;
+  color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:2.5px;
+  margin-bottom:52px;
+}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.feat{padding:28px;border-radius:16px;}
+.feat-icon{
+  font-size:24px;margin-bottom:16px;
+  width:46px;height:46px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(201,100,66,0.1);
+}
+.feat-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:8px;}
+.feat-desc{font-size:13.5px;line-height:1.65;color:rgba(255,255,255,0.4);}
+
+/* MOCKUP */
+.mockup-section{padding:0 40px 100px;max-width:900px;margin:0 auto;width:100%;}
+.mockup-frame{
+  border-radius:18px;overflow:hidden;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(14,10,6,0.85);
+  backdrop-filter:blur(20px);
+}
+.mockup-bar{
+  padding:14px 18px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  display:flex;align-items:center;gap:8px;
+}
+.dot{width:10px;height:10px;border-radius:50%;}
+.url-pill{
+  flex:1;text-align:center;
+  font-size:11.5px;color:rgba(255,255,255,0.2);
+  background:rgba(255,255,255,0.04);
+  border-radius:6px;padding:4px 12px;margin:0 20px;
+}
+.mkp-body{padding:16px;display:flex;flex-direction:column;gap:8px;}
+.mkp-row{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,0.03);
+  border-radius:10px;padding:12px 14px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+.mkp-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;}
+.mkp-content{flex:1;display:flex;flex-direction:column;gap:6px;}
+.mkp-line{height:7px;border-radius:4px;background:rgba(255,255,255,0.08);}
+.mkp-line.short{width:45%;}
+.mkp-badge{
+  padding:3px 10px;border-radius:99px;
+  font-size:11px;font-weight:600;flex-shrink:0;
+}
+.b-green{background:rgba(107,142,90,0.18);color:#8ec97a;}
+.b-amber{background:rgba(212,168,87,0.18);color:#d4a857;}
+.b-red{background:rgba(201,100,66,0.18);color:#e07a55;}
+.b-blue{background:rgba(74,127,193,0.18);color:#7ab1e0;}
+
+/* CTA */
+.cta-wrap{padding:0 40px 100px;text-align:center;}
+.cta-box{
+  max-width:680px;margin:0 auto;
+  padding:72px 48px;border-radius:24px;
+}
+.cta-h{
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(34px,5vw,56px);
+  color:#fff;line-height:1.1;margin-bottom:16px;letter-spacing:-1px;
+}
+.cta-p{font-size:15px;color:rgba(255,255,255,0.45);margin-bottom:36px;line-height:1.7;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-outline{
+  padding:10px 24px;border-radius:99px;
+  border:1px solid rgba(255,255,255,0.2);
+  background:none;color:rgba(255,255,255,0.7);
+  font-size:14px;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all .15s;
+}
+.btn-outline:hover{border-color:rgba(255,255,255,0.5);color:#fff;}
+
+/* FOOTER */
+footer{
+  border-top:1px solid rgba(255,255,255,0.06);
+  padding:28px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;
+}
+footer p,footer a{font-size:12.5px;color:rgba(255,255,255,0.25);text-decoration:none;}
+footer a:hover{color:rgba(255,255,255,0.6);}
+.footer-links{display:flex;gap:20px;}
+
+/* ANIMATIONS */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.in{opacity:1;transform:translateY(0);}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+.d4{transition-delay:.32s}.d5{transition-delay:.4s}.d6{transition-delay:.48s}
+
+@media(max-width:768px){
+  nav{padding:16px 20px;}
+  .nav-center,.nav-right .btn-ghost{display:none;}
+  .grid3{grid-template-columns:1fr;}
+  .stats{flex-direction:column;}
+  .stat{border-right:none;border-bottom:1px solid rgba(255,255,255,0.07);padding:20px;}
+  .stat:last-child{border-bottom:none;}
+  .section,.mockup-section,.cta-wrap{padding-left:20px;padding-right:20px;}
+  footer{flex-direction:column;align-items:flex-start;}
+}
+</style>
+</head>
+<body>
+
+<div class="video-wrap">
+  <video id="bgv" autoplay muted playsinline>
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_115001_bcdaa3b4-03de-47e7-ad63-ae3e392c32d4.mp4" type="video/mp4"/>
+  </video>
+  <div class="video-overlay"></div>
+</div>
+
+<div class="page">
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="logo-mark">R</div>
+      <span class="logo-name">Replyloop</span>
+    </a>
+    <div class="nav-center">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn-ghost">Sign in</button>
+      <a href="https://emailreplydashboard-production.up.railway.app" class="btn-cta" target="_blank">
+        Open app
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="live-badge glass reveal in">
+      <div class="live-dot"></div>
+      Live · 54 replies tracked today
+    </div>
+
+    <h1 class="reveal in d1">
+      Every reply,<br><em>handled.</em>
+    </h1>
+    <div class="hero-sub reveal in d2">Nothing slips through.</div>
+
+    <p class="hero-desc reveal in d3">
+      Replyloop gives your SDR team one place to track, route,
+      and act on every reply from every Instantly campaign.
+    </p>
+
+    <div class="email-bar glass reveal in d4">
+      <input type="email" placeholder="Enter your work email"/>
+      <button>Get early access →</button>
+    </div>
+
+    <div class="stats reveal in d5">
+      <div class="stat">
+        <div class="stat-n"><span>3×</span></div>
+        <div class="stat-l">Faster response</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">100<span>%</span></div>
+        <div class="stat-l">Reply coverage</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n"><span>54</span></div>
+        <div class="stat-l">Live replies</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">0</div>
+        <div class="stat-l">Missed deals</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <div class="section" id="features">
+    <div class="section-label reveal">What Replyloop does</div>
+    <div class="grid3">
+      <div class="feat glass reveal d1">
+        <div class="feat-icon">📥</div>
+        <div class="feat-title">Unified inbox</div>
+        <div class="feat-desc">Every reply from every campaign in one clean inbox. Filter by campaign, intent, handler, or status in seconds.</div>
+      </div>
+      <div class="feat glass reveal d2">
+        <div class="feat-icon">🤖</div>
+        <div class="feat-title">AI intent detection</div>
+        <div class="feat-desc">Auto-tags every reply as Interested, OOO, Meeting, or Unsubscribe so your team knows exactly what to do next.</div>
+      </div>
+      <div class="feat glass reveal d3">
+        <div class="feat-icon">🗺️</div>
+        <div class="feat-title">Smart routing</div>
+        <div class="feat-desc">Assign campaigns to specific SDRs with PINs. Each handler only sees their own replies — no overlap, no confusion.</div>
+      </div>
+      <div class="feat glass reveal d4">
+        <div class="feat-icon">📧</div>
+        <div class="feat-title">Full thread view</div>
+        <div class="feat-desc">See the complete conversation — your outbound email and their reply — in a clean Gmail-like thread.</div>
+      </div>
+      <div class="feat glass reveal d5">
+        <div class="feat-icon">🔗</div>
+        <div class="feat-title">Job URL mapping</div>
+        <div class="feat-desc">Each reply shows the exact job posting you contacted them about. Your SDR knows the context instantly.</div>
+      </div>
+      <div class="feat glass reveal d6">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Analytics & SLA</div>
+        <div class="feat-desc">Track reply volume, handler workload, SLA compliance, and intent breakdown across all campaigns.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOCKUP -->
+  <div class="mockup-section reveal">
+    <div class="mockup-frame">
+      <div class="mockup-bar">
+        <div class="dot" style="background:#ff5f57"></div>
+        <div class="dot" style="background:#febc2e"></div>
+        <div class="dot" style="background:#28c840"></div>
+        <div class="url-pill">emailreplydashboard-production.up.railway.app</div>
+      </div>
+      <div class="mkp-body">
+        <div class="mkp-row">
+          <div class="mkp-av" style="background:#C96442"></div>
+          <div class="mkp-content">
+            <div class="mkp-line" style="width:65%"></div>
+            <div class="mkp-line short"></div>
+          </div>
+          <div class="mkp-badge b-green">interested</div>
+        </div>
+        <div class="mkp-row">
+          <div class="mkp-av" style="background:#7A8C99"></div>
+          <div class="mkp-content">
+            <div class="mkp-line" style="width:55%"></div>
+            <div class="mkp-line short"></div>
+          </div>
+          <div class="mkp-badge b-amber">ooo</div>
+        </div>
+        <div class="mkp-row">
+          <div class="mkp-av" style="background:#6B8E5A"></div>
+          <div class="mkp-content">
+            <div class="mkp-line" style="width:70%"></div>
+            <div class="mkp-line short"></div>
+          </div>
+          <div class="mkp-badge b-red">meeting</div>
+        </div>
+        <div class="mkp-row">
+          <div class="mkp-av" style="background:#A98556"></div>
+          <div class="mkp-content">
+            <div class="mkp-line" style="width:50%"></div>
+            <div class="mkp-line short"></div>
+          </div>
+          <div class="mkp-badge b-blue">new</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-wrap">
+    <div class="cta-box glass reveal">
+      <h2 class="cta-h">Ready to close more<br><em style="font-family:'Instrument Serif',serif;font-style:italic;color:rgba(255,255,255,0.5)">from your replies?</em></h2>
+      <p class="cta-p">Join the SDR teams using Replyloop to track every reply,<br>route to the right person, and book more meetings.</p>
+      <div class="cta-btns">
+        <a href="https://emailreplydashboard-production.up.railway.app" class="btn-cta" target="_blank">
+          Open Replyloop
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <button class="btn-outline">Watch demo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 Replyloop by ConsultAdd · Built for SDR teams</p>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="https://emailreplydashboard-production.up.railway.app">App ↗</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+// Video — smooth fade in, seamless loop
+const v = document.getElementById('bgv');
+let fading = false, raf = null;
+
+function fadeTo(target, dur, cb){
+  if(raf) cancelAnimationFrame(raf);
+  const t0 = performance.now(), from = parseFloat(v.style.opacity)||0;
+  (function step(now){
+    const p = Math.min((now-t0)/dur, 1);
+    v.style.opacity = from + (target-from)*p;
+    if(p < 1) raf = requestAnimationFrame(step);
+    else { raf = null; cb&&cb(); }
+  })(t0);
+}
+
+v.addEventListener('canplay', () => fadeTo(1, 1000));
+v.addEventListener('timeupdate', () => {
+  if(!fading && v.duration && v.duration - v.currentTime <= 0.6){
+    fading = true;
+    fadeTo(0, 500, () => {
+      v.style.opacity = 0;
+      setTimeout(() => { v.currentTime = 0; v.play(); fadeTo(1, 500, () => fading=false); }, 80);
+    });
+  }
+});
+
+// Scroll reveal
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+}, {threshold: 0.12});
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>

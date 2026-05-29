@@ -10,6 +10,7 @@ import AdminPanel from './components/AdminPanel.jsx'
 import Mapping from './components/Mapping.jsx'
 import Analytics from './components/Analytics.jsx'
 import './App.css'
+import Landing from './components/Landing.jsx'
 
 const STATUS_OPTIONS = ['New','Interested','Meeting','OOO','Nurture','Unsubscribe','Follow Up','Replied']
 
@@ -144,8 +145,8 @@ export default function App() {
     followup:   filtered.filter(r=>r.status==='Follow Up').length,
   }
 
-  if (!authReady) return null
-  if (!session)   return <Login onLogin={handleLogin}/>
+if (!authReady) return null
+if (!session)   return <Landing onLogin={handleLogin}/>
 
   const renderView = () => {
     switch(view) {
