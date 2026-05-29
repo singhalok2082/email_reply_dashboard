@@ -11,6 +11,7 @@ import Mapping from './components/Mapping.jsx'
 import Analytics from './components/Analytics.jsx'
 import './App.css'
 import Landing from './components/Landing.jsx'
+import Landing from './components/Landing.jsx'
 
 const STATUS_OPTIONS = ['New','Interested','Meeting','OOO','Nurture','Unsubscribe','Follow Up','Replied']
 
