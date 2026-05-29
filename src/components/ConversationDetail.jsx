@@ -143,7 +143,7 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
           </div>
 
           {/* Our sent email — RIGHT side */}
-          {reply.sent_email_body && (
+          {reply.sent_email_body ? (
             <div className="conv-msg ours">
               <div className="conv-msg-av" style={{ background: pocColor }}>
                 {reply.poc ? reply.poc[0].toUpperCase() : 'A'}
@@ -154,7 +154,7 @@ export default function ConversationDetail({ reply, onClose, onStatusChange, onN
                 <div className="conv-msg-text">{reply.sent_email_body}</div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Lead reply — LEFT side */}
           <div className="conv-msg theirs">
