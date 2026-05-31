@@ -220,45 +220,6 @@ function fmtTime(iso){
 /* ============================================================
    LOGIN SCREEN
    ============================================================ */
-function BrandMark({size=31}){
-  return <div className="brand-mark" style={{width:size,height:size,fontSize:size*.58,borderRadius:size*.26}}>R</div>
-}
-function Windmill({x,y,scale=1,opacity=1}){
-  const [angle,setAngle]=uS(0)
-  uE(()=>{
-    let raf,last=null
-    function step(ts){
-      if(last===null)last=ts
-      const dt=ts-last;last=ts
-      setAngle(a=>(a+dt*0.018)%360)
-      raf=requestAnimationFrame(step)
-    }
-    raf=requestAnimationFrame(step)
-    return ()=>cancelAnimationFrame(raf)
-  },[])
-  const s=scale
-  return <g transform={`translate(${x},${y}) scale(${s})`} opacity={opacity}>
-    <line x1="0" y1="0" x2="0" y2="180" stroke="var(--primary)" strokeWidth="8" strokeOpacity="0.35" strokeLinecap="round"/>
-    <line x1="-30" y1="180" x2="30" y2="180" stroke="var(--primary)" strokeWidth="8" strokeOpacity="0.25" strokeLinecap="round"/>
-    <g transform={`rotate(${angle})`}>
-      {[0,120,240].map(r=>(
-        <g key={r} transform={`rotate(${r})`}>
-          <path d="M0,0 C-6,-28 -4,-72 0,-90 C4,-72 6,-28 0,0" fill="var(--primary)" fillOpacity="0.22" stroke="var(--primary)" strokeOpacity="0.3" strokeWidth="1.5"/>
-        </g>
-      ))}
-      <circle cx="0" cy="0" r="7" fill="var(--primary)" fillOpacity="0.4"/>
-      <circle cx="0" cy="0" r="3.5" fill="var(--primary-tint)" fillOpacity="0.6"/>
-    </g>
-  </g>
-}
-function LoginMotif(){
-  return <svg viewBox="0 0 1000 1000" aria-hidden="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none'}}>
-    {[0,1,2,3,4,5].map(i=><ellipse key={i} cx="500" cy="500" rx={150+i*88} ry={300+i*46} fill="none" stroke="var(--primary)" strokeOpacity={0.05-i*0.004} strokeWidth="1.2" transform={`rotate(${-28+i*7} 500 500)`}/>)}
-    <Windmill x={500} y={520} scale={3.2} opacity={0.9}/>
-    <Windmill x={160} y={680} scale={1.5} opacity={0.4}/>
-    <Windmill x={840} y={700} scale={1.8} opacity={0.35}/>
-  </svg>
-}
 function LoginScreen({onLogin}){
   const [email,setEmail]=uS('')
   const [pass,setPass]=uS('')
@@ -270,7 +231,7 @@ function LoginScreen({onLogin}){
     e&&e.preventDefault()
     setErr('')
     if(!email.trim()){setErr('Enter your email.');return}
-    if(!pass){setErr('Enter your password.');return}
+    if(!pass){setErr('Enter your PIN.');return}
     setBusy(true)
     try{
       const {data,error}=await supabase
@@ -279,41 +240,61 @@ function LoginScreen({onLogin}){
         .eq('email',email.trim().toLowerCase())
         .single()
       if(error||!data){setErr('No account found for that email.');setBusy(false);return}
-      if(data.pin!==pass){setErr('Incorrect password.');setBusy(false);return}
-      const sess={id:data.name,name:data.name,email:data.email,role:data.role,color:data.color,is_admin:data.role==='admin'}
+      if(data.pin!==pass){setErr('Incorrect PIN.');setBusy(false);return}
+      const sess={id:data.name,name:data.name,email:data.email,role:data.role,color:data.color,
+        is_admin:['admin','Admin','Conultadd Admin','Consultadd Admin'].includes(data.role)}
       setSession(sess)
       onLogin(sess)
     }catch(e){setErr('Login failed. Try again.');setBusy(false)}
   }
 
-  const field={display:'block',width:'100%',height:46,padding:'0 14px',borderRadius:9,border:'1px solid var(--line-strong)',background:'var(--surface)',fontSize:14.5,fontFamily:'var(--font-ui)',color:'var(--ink)',outline:'none',transition:'.12s'}
-  const onF=e=>e.target.style.borderColor='var(--primary)'
-  const onB=e=>e.target.style.borderColor='var(--line-strong)'
+  const inputStyle={
+    display:'block',width:'100%',height:46,padding:'0 14px',
+    borderRadius:10,border:'1px solid rgba(255,255,255,0.1)',
+    background:'rgba(255,255,255,0.05)',fontSize:14,
+    fontFamily:'var(--font-ui)',color:'#fff',outline:'none',transition:'.15s',
+    marginBottom:18,
+  }
+  const onF=e=>e.target.style.borderColor='rgba(45,212,191,0.5)'
+  const onB=e=>e.target.style.borderColor='rgba(255,255,255,0.1)'
 
-  return <div style={{height:'100%',position:'relative',overflow:'auto',background:'var(--canvas)'}}>
-    <div style={{position:'fixed',inset:0,overflow:'hidden'}}><LoginMotif/></div>
+  return <div style={{height:'100%',position:'relative',overflow:'auto',
+    background:'radial-gradient(ellipse at 60% 35%,rgba(14,107,102,0.22) 0%,transparent 60%),radial-gradient(ellipse at 20% 75%,rgba(14,107,102,0.1) 0%,transparent 50%),#0A0D0F'}}>
+    {/* grid overlay */}
+    <div style={{position:'fixed',inset:0,backgroundImage:'linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)',backgroundSize:'64px 64px',pointerEvents:'none'}}/>
+    {/* orbital motif */}
+    <svg style={{position:'fixed',inset:0,width:'100%',height:'100%',pointerEvents:'none',opacity:0.5}} viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
+      {[0,1,2,3,4,5].map(i=><ellipse key={i} cx="500" cy="500" rx={150+i*88} ry={300+i*46} fill="none" stroke="rgba(45,212,191,0.07)" strokeWidth="1.2" transform={`rotate(${-28+i*7} 500 500)`}/>)}
+    </svg>
     <div style={{position:'relative',minHeight:'100%',display:'grid',placeItems:'center',padding:'48px 24px'}}>
-      <div style={{width:'100%',maxWidth:436}}>
-        <div style={{display:'flex',alignItems:'center',gap:11,marginBottom:30}}>
-          <BrandMark/><span className="serif" style={{fontWeight:600,fontSize:21,letterSpacing:'-.01em'}}>Replyloop</span>
-          <span className="mono" style={{marginLeft:'auto',fontSize:10.5,letterSpacing:'.12em',color:'var(--ink-3)',textTransform:'uppercase'}}>Reply Manager</span>
+      <div style={{width:'100%',maxWidth:400}}>
+        {/* logo */}
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:36}}>
+          <div style={{width:32,height:32,borderRadius:9,background:'rgba(14,107,102,0.25)',border:'1px solid rgba(45,212,191,0.35)',display:'grid',placeItems:'center',fontFamily:'var(--font-display)',fontSize:16,color:'#2DD4BF',fontWeight:400}}>C</div>
+          <span style={{fontFamily:'var(--font-display)',fontWeight:400,fontSize:18,color:'#fff',letterSpacing:'-0.01em'}}>ConsultADD</span>
+          <span style={{marginLeft:'auto',fontSize:10,letterSpacing:'.12em',color:'rgba(255,255,255,0.25)',textTransform:'uppercase',fontFamily:'var(--font-mono)'}}>Replyloop</span>
         </div>
-        <div className="mono" style={{fontSize:11,letterSpacing:'.14em',color:'var(--primary)',textTransform:'uppercase',marginBottom:12}}>Welcome back</div>
-        <h1 className="serif" style={{fontSize:36,fontWeight:600,letterSpacing:'-.02em',lineHeight:1.08,margin:'0 0 12px'}}>Every reply,<br/>in one loop.</h1>
-        <p className="muted" style={{margin:'0 0 26px',fontSize:14.5,lineHeight:1.55,maxWidth:380}}>Sign in to track, route and answer every reply from every Instantly campaign.</p>
-        <div className="card" style={{padding:'24px 22px',boxShadow:'var(--sh-card)'}}>
+        {/* headline */}
+        <div style={{fontSize:11,fontWeight:600,letterSpacing:'.12em',color:'#2DD4BF',textTransform:'uppercase',marginBottom:12,fontFamily:'var(--font-mono)'}}>Reply Manager</div>
+        <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(32px,5vw,48px)',fontWeight:400,lineHeight:1.08,letterSpacing:'-.02em',color:'#fff',margin:'0 0 12px'}}>Every reply,<br/><em style={{fontStyle:'italic',color:'rgba(255,255,255,0.55)'}}>in one loop.</em></h1>
+        <p style={{fontSize:14,color:'rgba(255,255,255,0.38)',lineHeight:1.65,marginBottom:32}}>Sign in to track, route and answer every reply from every Instantly campaign.</p>
+        {/* card */}
+        <div style={{borderRadius:20,padding:'28px 26px',background:'rgba(255,255,255,0.03)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',boxShadow:'inset 0 1px 1px rgba(255,255,255,0.07),0 24px 64px rgba(0,0,0,0.5)',border:'1px solid rgba(255,255,255,0.08)'}}>
           <form onSubmit={submit}>
-            <label className="kicker" style={{display:'block',marginBottom:7}}>Work email</label>
-            <input style={field} type="email" placeholder="you@consultadd.com" value={email} onChange={e=>setEmail(e.target.value)} autoFocus onFocus={onF} onBlur={onB}/>
-            <label className="kicker" style={{display:'block',margin:'18px 0 7px'}}>Password (PIN)</label>
-            <div style={{position:'relative'}}>
-              <input style={{...field,paddingRight:44}} type={show?'text':'password'} placeholder="••••" value={pass} onChange={e=>setPass(e.target.value)} onFocus={onF} onBlur={onB}/>
-              <button type="button" onClick={()=>setShow(s=>!s)} className="icon-btn" style={{position:'absolute',right:8,top:8}}><Icon name="eye" size={17}/></button>
+            <label style={{fontSize:10.5,fontWeight:600,letterSpacing:'.09em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',display:'block',marginBottom:8}}>Work email</label>
+            <input style={inputStyle} type="email" placeholder="you@consultadd.com" value={email} onChange={e=>setEmail(e.target.value)} autoFocus onFocus={onF} onBlur={onB}/>
+            <label style={{fontSize:10.5,fontWeight:600,letterSpacing:'.09em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',display:'block',marginBottom:8}}>Password (PIN)</label>
+            <div style={{position:'relative',marginBottom:22}}>
+              <input style={{...inputStyle,marginBottom:0,paddingRight:44}} type={show?'text':'password'} placeholder="••••" value={pass} onChange={e=>setPass(e.target.value)} onFocus={onF} onBlur={onB}/>
+              <button type="button" onClick={()=>setShow(s=>!s)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'rgba(255,255,255,0.3)',cursor:'pointer',display:'grid',placeItems:'center',padding:4}}><Icon name="eye" size={17}/></button>
             </div>
-            {err&&<div style={{display:'flex',alignItems:'center',gap:7,marginTop:14,color:'var(--red)',fontSize:13,fontWeight:500}}><Icon name="alert" size={15}/>{err}</div>}
-            <button className="btn primary lg block" type="submit" style={{marginTop:20}} disabled={busy}>{busy?'Signing in…':<>Sign in <Icon name="arrowR" size={17}/></>}</button>
+            {err&&<div style={{display:'flex',alignItems:'center',gap:7,marginBottom:14,color:'#f87171',fontSize:13,fontWeight:500}}><Icon name="alert" size={15}/>{err}</div>}
+            <button type="submit" disabled={busy} style={{width:'100%',height:48,borderRadius:10,border:'none',background:'#0E6B66',color:'#fff',fontSize:14.5,fontWeight:600,cursor:busy?'not-allowed':'pointer',fontFamily:'var(--font-ui)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'background .2s,transform .15s',opacity:busy?0.6:1}}>
+              {busy?'Signing in…':<>Sign in <Icon name="arrowR" size={17}/></>}
+            </button>
           </form>
         </div>
+        <p style={{marginTop:20,fontSize:12,color:'rgba(255,255,255,0.2)',textAlign:'center'}}>← <a href="https://consultadd-site-production.up.railway.app" style={{color:'rgba(255,255,255,0.3)',textDecoration:'none'}}>Back to ConsultADD</a></p>
       </div>
     </div>
   </div>
