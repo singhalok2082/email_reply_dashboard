@@ -223,9 +223,40 @@ function fmtTime(iso){
 function BrandMark({size=31}){
   return <div className="brand-mark" style={{width:size,height:size,fontSize:size*.58,borderRadius:size*.26}}>R</div>
 }
+function Windmill({x,y,scale=1,opacity=1}){
+  const [angle,setAngle]=uS(0)
+  uE(()=>{
+    let raf,last=null
+    function step(ts){
+      if(last===null)last=ts
+      const dt=ts-last;last=ts
+      setAngle(a=>(a+dt*0.018)%360)
+      raf=requestAnimationFrame(step)
+    }
+    raf=requestAnimationFrame(step)
+    return ()=>cancelAnimationFrame(raf)
+  },[])
+  const s=scale
+  return <g transform={`translate(${x},${y}) scale(${s})`} opacity={opacity}>
+    <line x1="0" y1="0" x2="0" y2="180" stroke="var(--primary)" strokeWidth="8" strokeOpacity="0.35" strokeLinecap="round"/>
+    <line x1="-30" y1="180" x2="30" y2="180" stroke="var(--primary)" strokeWidth="8" strokeOpacity="0.25" strokeLinecap="round"/>
+    <g transform={`rotate(${angle})`}>
+      {[0,120,240].map(r=>(
+        <g key={r} transform={`rotate(${r})`}>
+          <path d="M0,0 C-6,-28 -4,-72 0,-90 C4,-72 6,-28 0,0" fill="var(--primary)" fillOpacity="0.22" stroke="var(--primary)" strokeOpacity="0.3" strokeWidth="1.5"/>
+        </g>
+      ))}
+      <circle cx="0" cy="0" r="7" fill="var(--primary)" fillOpacity="0.4"/>
+      <circle cx="0" cy="0" r="3.5" fill="var(--primary-tint)" fillOpacity="0.6"/>
+    </g>
+  </g>
+}
 function LoginMotif(){
-  return <svg viewBox="0 0 1000 1000" aria-hidden="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',opacity:.5}}>
-    {[0,1,2,3,4,5].map(i=><ellipse key={i} cx="500" cy="500" rx={150+i*88} ry={300+i*46} fill="none" stroke="var(--primary)" strokeOpacity={0.07-i*0.006} strokeWidth="1.3" transform={`rotate(${-28+i*7} 500 500)`}/>)}
+  return <svg viewBox="0 0 1000 1000" aria-hidden="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none'}}>
+    {[0,1,2,3,4,5].map(i=><ellipse key={i} cx="500" cy="500" rx={150+i*88} ry={300+i*46} fill="none" stroke="var(--primary)" strokeOpacity={0.05-i*0.004} strokeWidth="1.2" transform={`rotate(${-28+i*7} 500 500)`}/>)}
+    <Windmill x={500} y={520} scale={3.2} opacity={0.9}/>
+    <Windmill x={160} y={680} scale={1.5} opacity={0.4}/>
+    <Windmill x={840} y={700} scale={1.8} opacity={0.35}/>
   </svg>
 }
 function LoginScreen({onLogin}){
@@ -854,7 +885,14 @@ function Sidebar({handler,isAdmin,route,setRoute,campaigns,handlers,go,onLogout,
    APP ROOT
    ============================================================ */
 export default function App(){
-  const [session,setSessionState]=uS(()=>getSession())
+  const [session,setSessionState]=uS(()=>{
+    try{
+      const params=new URLSearchParams(window.location.search);
+      const token=params.get('session');
+      if(token){const s=JSON.parse(atob(decodeURIComponent(token)));setSession(s);window.history.replaceState({},'',window.location.pathname);return s;}
+    }catch(e){}
+    return getSession();
+  })
   const [route,setRoute]=uS('inbox')
   const [filter,setFilter]=uS(null)
   const [threads,setThreads]=uS([])
