@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { supabase } from './lib/supabase'
-import { getSession, setSession, clearSession, isAdmin } from './lib/auth'
+import { getSession, setSession, clearSession } from './lib/auth'
+
+function isAdmin(session){
+  if(!session) return false
+  const role=(session.role||'').toLowerCase()
+  return role==='admin'||role==='consultadd admin'||role==='conultadd admin'||session.is_admin===true
+}
 
 /* ============================================================
    HOOKS ALIASES (match inline style used throughout)
