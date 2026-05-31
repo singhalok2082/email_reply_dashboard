@@ -155,6 +155,25 @@ function Checkbox({on,indeterminate,onClick}){
    DATA HELPERS — map Supabase rows to UI thread objects
    ============================================================ */
 function rowToThread(r){
+  const messages=[]
+  if(r.sent_email_body){
+    messages.push({
+      from:'me',
+      author: r.sending_email||'ConsultAdd',
+      email: r.sending_email||'',
+      date: fmtDateLong(r.created_at),
+      time: '',
+      body: r.sent_email_body,
+    })
+  }
+  messages.push({
+    from:'lead',
+    author: r.lead_name||r.lead_email||'Lead',
+    email: r.lead_email||'',
+    date: fmtDateLong(r.created_at),
+    time: fmtTime(r.created_at),
+    body: r.reply_body||r.reply_full||'(no content)',
+  })
   return {
     id: r.id,
     campaign: r.campaign_name||'',
@@ -178,14 +197,7 @@ function rowToThread(r){
     done: ['Archive','Unsubscribe'].includes(r.status),
     sla: 'ok',
     sdr_notes: r.sdr_notes||'',
-    messages:[{
-      from:'lead',
-      author: r.lead_name||r.lead_email||'Lead',
-      email: r.lead_email||'',
-      date: fmtDateLong(r.created_at),
-      time: fmtTime(r.created_at),
-      body: r.reply_body||r.reply_full||'(no content)',
-    }],
+    messages,
   }
 }
 function fmtDate(iso){
