@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Replyloop — Reply Manager</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --canvas:#ECEDE6;
+  --surface:#FFFFFF;
+  --surface-2:#F7F8F2;
+  --surface-inset:#F2F3EC;
+  --ink:#1A1C18;
+  --ink-2:#585C52;
+  --ink-3:#888D80;
+  --ink-4:#B3B7AB;
+  --line:#E3E5DB;
+  --line-2:#EAECE2;
+  --line-strong:#D2D5C8;
+  --primary:#0E6B66;
+  --primary-strong:#0A4F4B;
+  --primary-ink:#0B4642;
+  --primary-tint:#E1EFED;
+  --primary-tint-2:#EFF6F4;
+  --on-primary:#FFFFFF;
+  --accent-warm:#B07A2A;
+  --accent-warm-tint:#F3EBD9;
+  --green:#3C8C57;  --green-tint:#E7F1E9;
+  --amber:#A9772A;  --amber-tint:#F3ECDC;
+  --red:#BE4130;    --red-tint:#F7E7E3;
+  --blue:#2C6CB4;   --blue-tint:#E6EEF7;
+  --violet:#7A5A98; --violet-tint:#F0EAF5;
+  --a-terra:#C0654B; --a-slate:#76867E; --a-green:#5C8A55;
+  --a-gold:#AC864B;  --a-plum:#94607C;  --a-teal:#3E8480;
+  --a-indigo:#5C61B8;--a-rose:#B26E84;
+  --r-xs:4px; --r-sm:6px; --r:9px; --r-lg:12px; --r-xl:16px; --r-pill:999px;
+  --sh-xs:0 1px 1.5px rgba(28,30,22,.05);
+  --sh-sm:0 1px 2px rgba(28,30,22,.05), 0 1px 2px rgba(28,30,22,.03);
+  --sh-card:0 1px 2px rgba(28,30,22,.04), 0 12px 28px -16px rgba(28,30,22,.18);
+  --sh-pop:0 6px 16px -4px rgba(28,30,22,.14), 0 20px 50px -22px rgba(28,30,22,.30);
+  --font-ui:'Hanken Grotesk',system-ui,sans-serif;
+  --font-display:'Newsreader',Georgia,serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  --row-pad:13px;
+  --space:16px;
+  --sidebar-w:256px;
+  --list-w:350px;
+  --lead-w:300px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+#root{height:100%}
+.mono{font-family:var(--font-mono);font-feature-settings:"tnum"}
+.tnum{font-variant-numeric:tabular-nums}
+.serif{font-family:var(--font-display)}
+button{font-family:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--primary-tint);color:var(--primary-ink)}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:#D3D6C9;border-radius:99px;border:3px solid transparent;background-clip:padding-box}
+*::-webkit-scrollbar-thumb:hover{background:#BFC3B4;background-clip:padding-box}
+*::-webkit-scrollbar-track{background:transparent}
+.app{display:flex;height:100%;overflow:hidden}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.sidebar{width:var(--sidebar-w);flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;height:100%;}
+.sb-brand{display:flex;align-items:center;gap:11px;padding:18px 18px 14px}
+.brand-mark{width:31px;height:31px;border-radius:8px;flex:none;background:linear-gradient(150deg,var(--primary),var(--primary-strong));color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:18px;box-shadow:var(--sh-xs);letter-spacing:-.02em;}
+.brand-name{font-family:var(--font-display);font-weight:600;font-size:19px;letter-spacing:-.01em}
+.sb-scroll{flex:1;overflow-y:auto;padding:6px 12px 12px}
+.sb-search{display:flex;align-items:center;gap:8px;margin:2px 6px 12px;padding:8px 11px;background:var(--surface-inset);border:1px solid var(--line-2);border-radius:8px;color:var(--ink-3);font-size:13px;cursor:text;transition:.12s;}
+.sb-search:hover{border-color:var(--line-strong)}
+.sb-group-label{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-4);padding:14px 12px 6px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:8px;color:var(--ink-2);font-weight:500;font-size:13.5px;cursor:pointer;position:relative;transition:background .12s,color .12s;margin:1px 0;}
+.nav-item:hover{background:var(--surface-inset);color:var(--ink)}
+.nav-item.active{background:var(--primary-tint);color:var(--primary-ink);font-weight:600}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--primary)}
+.nav-item.active .nav-ic{color:var(--primary)}
+.nav-ic{width:18px;height:18px;flex:none;color:var(--ink-3);transition:color .12s}
+.nav-item .nav-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-count{font-size:11.5px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.nav-item.active .nav-count{color:var(--primary)}
+.nav-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.sb-foot{border-top:1px solid var(--line);padding:10px 12px;display:flex;align-items:center;gap:10px}
+.sb-foot .uf{flex:1;min-width:0}
+.sb-foot .uf-name{font-weight:600;font-size:13.5px;line-height:1.2}
+.sb-foot .uf-role{font-size:11.5px;color:var(--ink-3)}
+.icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;display:grid;place-items:center;color:var(--ink-3);transition:.12s;flex:none;}
+.icon-btn:hover{background:var(--surface-inset);color:var(--ink);border-color:var(--line-2)}
+.av{border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-weight:700;letter-spacing:-.01em;overflow:hidden}
+.av-xs{width:20px;height:20px;font-size:9px}
+.av-sm{width:26px;height:26px;font-size:10.5px}
+.av-md{width:34px;height:34px;font-size:12.5px}
+.av-lg{width:44px;height:44px;font-size:16px}
+.av-xl{width:72px;height:72px;font-size:25px}
+.av-ring{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px currentColor}
+.badge{display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 8px;border-radius:var(--r-pill);font-size:11.5px;font-weight:600;letter-spacing:.01em;border:1px solid transparent;white-space:nowrap;}
+.badge .bdot{width:6px;height:6px;border-radius:50%}
+.badge.interested{background:var(--green-tint);color:#2f6f44;border-color:#d2e6d8}
+.badge.new{background:var(--blue-tint);color:#235a97;border-color:#d3e2f1}
+.badge.meeting{background:var(--violet-tint);color:#5e447a;border-color:#e4d8ee}
+.badge.ooo{background:var(--amber-tint);color:#8a6020;border-color:#ecdcbf}
+.badge.unsubscribe{background:var(--red-tint);color:#9c3324;border-color:#f0d2cb}
+.badge.nurture{background:var(--surface-inset);color:var(--ink-2);border-color:var(--line)}
+.badge.ghost{background:var(--surface);color:var(--ink-2);border-color:var(--line)}
+.badge.solid{background:var(--primary);color:#fff}
+.badge.sla-ok{background:var(--green-tint);color:#2f6f44}
+.badge.sla-risk{background:var(--amber-tint);color:#8a6020}
+.badge.sla-breach{background:var(--red-tint);color:#9c3324}
+.chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;white-space:nowrap;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink-2);transition:.12s;flex:none;}
+.chip:hover{border-color:var(--line-strong);color:var(--ink)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 16px;border-radius:9px;font-weight:600;font-size:13.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink);transition:.13s;white-space:nowrap;}
+.btn:hover{border-color:var(--line-strong);background:var(--surface-2)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:var(--sh-xs)}
+.btn.primary:hover{background:var(--primary-strong);border-color:var(--primary-strong)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--surface-inset);color:var(--ink)}
+.btn.sm{height:32px;padding:0 12px;font-size:12.5px;border-radius:8px}
+.btn.lg{height:46px;padding:0 22px;font-size:15px;border-radius:10px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+.panel-pad{padding:20px}
+.kicker{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.divider{height:1px;background:var(--line);border:0;margin:0}
+.metric-num{font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.muted{color:var(--ink-2)}
+.faint{color:var(--ink-3)}
+.content{flex:1;overflow-y:auto;min-height:0}
+.page{max-width:1180px;margin:0 auto;padding:30px 32px 64px}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px}
+.page-title{font-family:var(--font-display);font-size:30px;font-weight:600;letter-spacing:-.01em;line-height:1.08}
+.page-sub{color:var(--ink-3);font-size:13.5px;margin-top:6px}
+.thread-subject{font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em}
+.topbar{height:58px;flex:none;border-bottom:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:14px;padding:0 18px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fade-up{animation:fadeUp .22s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fade-in{animation:fadeIn .2s ease}
+body.compact{--row-pad:9px;--space:12px;font-size:13.5px}
+body.comfy{--row-pad:16px;--space:18px}
+.mailbox{width:var(--list-w);flex:none;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-width:0}
+.mailbox-head{padding:11px 14px;border-bottom:1px solid var(--line);min-height:52px;display:flex;align-items:center}
+.bulk-bar{display:flex;align-items:center;gap:6px;width:100%}
+.mailbox-filters{padding:9px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.seg-scroll{overflow-x:auto;margin:0 -2px;padding-bottom:1px}
+.seg-scroll::-webkit-scrollbar,.camp-chips::-webkit-scrollbar{height:0}
+.camp-chips{display:flex;gap:6px;overflow-x:auto}
+.mailbox-list{flex:1;overflow-y:auto}
+.cbx{width:17px;height:17px;flex:none;border-radius:5px;border:1.6px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;color:#fff;transition:.12s;padding:0}
+.cbx:hover{border-color:var(--ink-3)}
+.cbx[data-on]{background:var(--primary);border-color:var(--primary)}
+.reply-row{display:flex;gap:11px;padding:var(--row-pad) 14px;border-bottom:1px solid var(--line-2);cursor:pointer;position:relative;transition:background .1s}
+.reply-row:hover{background:var(--surface-2)}
+.reply-row[data-sel]{background:var(--primary-tint)}
+.reply-row[data-active]{background:var(--primary-tint-2)}
+.reply-row[data-active]::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--primary)}
+.reply-row[data-done]{opacity:.62}
+.row-ctrl{display:flex;flex-direction:column;align-items:center;gap:7px;padding-top:3px;flex:none}
+.star-btn{border:none;background:none;padding:0;display:flex;line-height:0}
+.row-av{position:relative;flex:none}
+.reply-row[data-unread] .row-av::after{content:"";position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:var(--primary);border:2px solid var(--surface)}
+.row-main{flex:1;min-width:0}
+.row-top{display:flex;align-items:center;gap:7px;min-width:0}
+.row-sender{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.reply-row[data-unread] .row-sender{font-weight:700}
+.row-date{margin-left:auto;font-size:11.5px;color:var(--ink-3);white-space:nowrap;flex:none}
+.row-actions{display:none;margin-left:auto;gap:1px;flex:none}
+.reply-row:hover .row-actions{display:flex}
+.reply-row:hover .row-date{display:none}
+.row-subj{font-weight:500;font-size:13px;margin:3px 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+.reply-row[data-unread] .row-subj{font-weight:600;color:var(--ink)}
+.row-bottom{display:flex;align-items:center;gap:8px;min-width:0}
+.row-snip{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.row-camp{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-3);white-space:nowrap;flex:none}
+.ico-act{width:34px;height:34px;border-radius:8px;border:none;background:transparent;display:grid;place-items:center;color:var(--ink-3);transition:.12s;flex:none}
+.ico-act:hover{background:var(--surface-inset);color:var(--ink)}
+.ico-act[data-active]{color:var(--primary);background:var(--primary-tint)}
+.ico-act.sm{width:28px;height:28px;border-radius:7px}
+.tb-sep{width:1px;align-self:stretch;background:var(--line);margin:6px 4px}
+.reader{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--canvas)}
+.reader-toolbar{flex:none;display:flex;align-items:center;gap:3px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--surface);min-height:52px}
+.reader-scroll{flex:1;overflow-y:auto;padding:24px 24px 10px}
+.reader-inner{max-width:780px;margin:0 auto}
+.expand-strip{display:flex;align-items:center;gap:9px;width:100%;padding:9px 13px;margin-bottom:10px;white-space:nowrap;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font-size:12.5px;font-weight:600;cursor:pointer;transition:.12s}
+.expand-strip:hover{border-color:var(--line-strong);background:var(--surface-2)}
+.msg-collapsed{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:11px;background:var(--surface);cursor:pointer;text-align:left;transition:.12s}
+.msg-collapsed:hover{background:var(--surface-2);border-color:var(--line-strong)}
+.msg{border:1px solid var(--line);border-radius:13px;background:var(--surface);padding:16px 18px;box-shadow:var(--sh-xs)}
+.msg-mine{background:var(--primary-tint-2);border-color:#cfe3e0;border-left:3px solid var(--primary)}
+.msg-head{display:flex;align-items:flex-start;gap:11px}
+.msg-av-me{width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:700;font-size:10.5px;flex:none}
+.msg-av-me.md{width:34px;height:34px;font-size:12.5px}
+.msg-body{margin-top:12px;font-size:13.5px;line-height:1.62;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.att-chip{display:inline-flex;align-items:center;gap:9px;padding:7px 9px 7px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);transition:.12s}
+.att-chip:hover{border-color:var(--line-strong)}
+.att-ic{width:30px;height:30px;border-radius:7px;background:var(--primary-tint);color:var(--primary);display:grid;place-items:center;flex:none}
+.composer{flex:none;border-top:1px solid var(--line);background:var(--surface);padding:12px 24px 14px}
+.composer>div:first-child,.composer-card{max-width:780px;margin:0 auto}
+.tmpl-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-size:12px;font-weight:600;transition:.12s}
+.tmpl-chip:hover{border-color:var(--primary);color:var(--primary)}
+.composer-card{border:1px solid var(--line-strong);border-radius:13px;background:var(--surface);overflow:hidden;box-shadow:var(--sh-sm)}
+.composer-tabs{display:flex;align-items:center;gap:4px;padding:7px 9px;border-bottom:1px solid var(--line-2);background:var(--surface-2)}
+.ctab{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;border:none;background:transparent;color:var(--ink-3);font-size:12.5px;font-weight:600;transition:.12s}
+.ctab:hover{background:var(--surface-inset);color:var(--ink)}
+.ctab.on,.ctab[data-on]{background:var(--primary-tint);color:var(--primary-ink)}
+.composer-field{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-2);min-height:36px}
+.cf-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4);width:34px;flex:none}
+.cf-val{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.composer-text{width:100%;border:none;outline:none;resize:none;padding:12px 14px;font-family:var(--font-ui);font-size:13.5px;line-height:1.55;color:var(--ink);background:transparent;min-height:88px}
+.composer-bar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid var(--line-2)}
+.lead-panel{width:var(--lead-w);flex:none;border-left:1px solid var(--line);background:var(--surface);overflow-y:auto;display:flex;flex-direction:column}
+.unassign-dot{width:20px;height:20px;border-radius:50%;background:var(--surface-inset);border:1px dashed var(--line-strong);display:grid;place-items:center;color:var(--ink-3)}
+
+/* Donut / Sparkline / MeterBar extras */
+.donut-wrap{position:relative;display:inline-grid;place-items:center}
+.donut-wrap>*{grid-area:1/1}
+.donut-center{pointer-events:none;text-align:center}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+/* ============================================================
+   ICONS — all icons used across all screens
+   ============================================================ */
+const ICONS={
+  inbox:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="16" height="12" rx="2"/><path d="M2 10h4l1.5 2h5L14 10h4"/></svg>,
+  user:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="7" r="3"/><path d="M4 18c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>,
+  users:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="7" r="2.5"/><path d="M3 18c0-2.8 2.2-5 5-5h0c2.8 0 5 2.2 5 5"/><circle cx="14" cy="7" r="2"/><path d="M17 18c0-2.2-1.6-4-3.5-4.4"/></svg>,
+  campaign:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10c0-3.9 3.1-7 7-7s7 3.1 7 7-3.1 7-7 7"/><circle cx="10" cy="10" r="2.5"/><path d="M10 3v2M10 15v2M3 10h2M15 10h2"/></svg>,
+  shield:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2l6 2.5v5c0 4-2.5 6.5-6 8-3.5-1.5-6-4-6-8v-5L10 2z"/></svg>,
+  chart:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="3" height="5" rx="1"/><rect x="8.5" y="8" width="3" height="9" rx="1"/><rect x="14" y="4" width="3" height="13" rx="1"/></svg>,
+  search:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="8.5" cy="8.5" r="5"/><path d="M15 15l-3-3"/></svg>,
+  more:<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/></svg>,
+  logout:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M13 4h3a1 1 0 011 1v10a1 1 0 01-1 1h-3M9 14l4-4-4-4M13 10H4"/></svg>,
+  check:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10l4 4 8-8"/></svg>,
+  checkCircle:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="10" r="8"/><path d="M6.5 10l2.5 2.5 5-5"/></svg>,
+  star:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2.5l2.1 4.3 4.7.7-3.4 3.3.8 4.7L10 13l-4.2 2.5.8-4.7-3.4-3.3 4.7-.7z"/></svg>,
+  starF:<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2.5l2.1 4.3 4.7.7-3.4 3.3.8 4.7L10 13l-4.2 2.5.8-4.7-3.4-3.3 4.7-.7z"/></svg>,
+  clip:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M16 9l-7 7a4 4 0 01-5.7-5.7L10 3.7A2.5 2.5 0 0113.5 7l-6.6 6.6a1 1 0 01-1.4-1.4L12 5.6"/></svg>,
+  archive:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="16" height="4" rx="1"/><path d="M3 7v9a1 1 0 001 1h12a1 1 0 001-1V7M8 11h4"/></svg>,
+  snooze:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="11" r="7"/><path d="M10 4V2M7 1.5l6 0M7.5 8.5h5l-5 5h5"/></svg>,
+  mail:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="16" height="12" rx="2"/><path d="M2 7l8 5 8-5"/></svg>,
+  tag:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h6.5l7 7a2 2 0 010 2.8L13 16.3a2 2 0 01-2.8 0l-7-7V3zM7 7h.01"/></svg>,
+  trash:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h14M8 5V3h4v2M5 5l1 12h8l1-12"/></svg>,
+  refresh:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10a6 6 0 106-6H7"/><path d="M7 1v3h3"/></svg>,
+  sort:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h14M6 10h8M9 15h2"/></svg>,
+  arrowL:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M13 4l-6 6 6 6"/></svg>,
+  arrowR:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M7 4l6 6-6 6"/></svg>,
+  plus:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M10 4v12M4 10h12"/></svg>,
+  x:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg>,
+  chevD:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8l5 5 5-5"/></svg>,
+  lock:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6a3 3 0 016 0v3"/></svg>,
+  external:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M11 3h6v6M17 3l-8 8M9 5H4a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1v-5"/></svg>,
+  expand:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>,
+  printer:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="13" width="10" height="5" rx="1"/><path d="M5 13V7h10v6M5 9H2V5h16v4h-3"/></svg>,
+  dotsV:<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="10" cy="5" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="10" cy="15" r="1.5"/></svg>,
+  panel:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M13 3v14"/></svg>,
+  reply:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 7l-5 4 5 4V12c4 0 7 1.5 8 4.5C16 11 13 7 8 8V7z"/></svg>,
+  replyAll:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 7l-4 4 4 4v-3c4 0 7 1.5 8 4.5C13 11 10 7 5 8V7z"/><path d="M9 9l-2 2 2 2"/></svg>,
+  forward:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 7l5 4-5 4v-3c-4 0-7 1.5-8 4.5C4 11 7 7 12 8V7z"/></svg>,
+  send:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2L2 9l6 2 2 7 8-16z"/><path d="M8 11l10-9"/></svg>,
+  sparkle:<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.5 4.5L16 8l-4.5 1.5L10 14l-1.5-4.5L4 8l4.5-1.5z"/><path d="M16 14l.7 2.1 2.3.9-2.3.9L16 20l-.7-2.1L13 17l2.3-.9z" opacity=".5"/></svg>,
+  bold:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4h6a3 3 0 010 6H6zM6 10h7a3 3 0 010 6H6z"/></svg>,
+  italic:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M10 4h4M6 16h4M12 4l-4 12"/></svg>,
+  link:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 12l4-4M11 7l2-2a3 3 0 014.2 4.2l-3 3a3 3 0 01-4.2 0M9 13l-2 2a3 3 0 01-4.2-4.2l3-3a3 3 0 014.2 0"/></svg>,
+  smile:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="10" r="8"/><path d="M7 12s1 2 3 2 3-2 3-2"/><circle cx="7.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="12.5" cy="8.5" r="1" fill="currentColor" stroke="none"/></svg>,
+  download:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3v11M6 10l4 4 4-4M3 17h14"/></svg>,
+  fileText:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2H5a1 1 0 00-1 1v14a1 1 0 001 1h10a1 1 0 001-1V6l-4-4z"/><path d="M12 2v4h4M7 9h6M7 12h6M7 15h4"/></svg>,
+  clock:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="10" r="8"/><path d="M10 5v5l3 3"/></svg>,
+  linkedin:<svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 7H3v10h2V7zM4 6a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM8 17h2v-5c0-1.7.8-2.5 2-2.5 1 0 1.8.6 1.8 2.5V17h2v-5.5C15.8 9 14.3 7 12 7c-1.3 0-2.3.6-3 1.5V7H7c0 .7.1 10 .1 10H8z"/></svg>,
+  alert:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L2 17h16L10 3z"/><path d="M10 9v4M10 14.5v.5"/></svg>,
+  eye:<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 10s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5z"/><circle cx="10" cy="10" r="2.5"/></svg>,
+};
+
+function Icon({name,size=18,style,className}){
+  const el=ICONS[name];
+  if(!el) return <span style={{width:size,height:size,display:'inline-block',...style}}/>;
+  return React.cloneElement(el,{width:size,height:size,style:{display:'block',flex:'none',...style},className});
+}
+
+/* ============================================================
+   MOCK DATA
+   ============================================================ */
+const DB={
+  HANDLERS:{
+    alok:{id:'alok',name:'Alok Singh',first:'Alok',email:'alok@consultadd.com',role:'admin',org:'ConsultAdd',color:'var(--a-teal)'},
+    arpit:{id:'arpit',name:'Arpit Sharma',first:'Arpit',email:'arpit@consultadd.com',role:'handler',org:'ConsultAdd',color:'var(--a-terra)'},
+    ayush:{id:'ayush',name:'Ayush Singh',first:'Ayush',email:'ayush.si@consultadd.com',role:'handler',org:'ConsultAdd',color:'var(--a-indigo)'},
+    gursimar:{id:'gursimar',name:'Gursimar Kaur',first:'Gursimar',email:'gursimar@consultadd.com',role:'handler',org:'ConsultAdd',color:'var(--a-plum)'},
+    ajeet:{id:'ajeet',name:'Ajeet Kumar',first:'Ajeet',email:'ajeet@consultadd.com',role:'handler',org:'ConsultAdd',color:'var(--a-green)'},
+  },
+  CAMPAIGNS:{
+    w2:{id:'w2',name:'W2 Emails Arpit-Alok',color:'var(--a-terra)',sentFrom:'arpit@consultadd.com',handlers:['arpit','alok'],owner:'arpit',sla:'4h'},
+    hp:{id:'hp',name:'Harry Potter — Wave 1',color:'var(--a-indigo)',sentFrom:'ajeet@consultadd.com',handlers:['ajeet'],owner:'ajeet',sla:'2h'},
+    sled:{id:'sled',name:'SLED Outreach Q2',color:'var(--a-green)',sentFrom:'ayush.si@consultadd.com',handlers:['ayush','gursimar'],owner:'ayush',sla:'4h'},
+    ct:{id:'ct',name:'CloudTech Campaign',color:'var(--a-gold)',sentFrom:'alok@consultadd.com',handlers:['alok'],owner:'alok',sla:'8h'},
+  },
+  ANALYTICS:{
+    volume:[8,12,7,15,18,11,9,21,14,17,22,19,13,16,24,20,18,11,15,23,19,14,17,21,25,18,13,16,20,22].map((v,i)=>({x:i,y:v,yi:Math.round(v*.35)})),
+    leaderboard:[{h:'arpit',replies:42},{h:'ayush',replies:36},{h:'gursimar',replies:28},{h:'ajeet',replies:19}],
+    intent:[
+      {key:'interested',label:'Interested',value:24,color:'var(--green)'},
+      {key:'meeting',label:'Meeting',value:12,color:'var(--violet)'},
+      {key:'new',label:'New',value:38,color:'var(--blue)'},
+      {key:'ooo',label:'OOO',value:11,color:'var(--amber)'},
+      {key:'unsubscribe',label:'Unsub',value:8,color:'var(--red)'},
+    ],
+    sla:{ontime:78,risk:14,breach:8},
+  },
+};
+
+const THREADS_INIT=[
+  {id:'t1',campaign:'w2',subject:'Re: Quick question about W2 opportunities',lead:{name:'Sarah Chen',email:'s.chen@techcorp.io',domain:'techcorp.io',title:'Sr. Software Engineer',company:'TechCorp',phone:'+1 (415) 555-0192',location:'San Francisco, CA',jobTitle:'Backend Engineer — Python/AWS',linkedin:'https://linkedin.com/jobs/view/1234'},intent:'interested',assignee:'arpit',ts:'10:42 AM',unread:true,starred:false,done:false,sla:'ok',messages:[{from:'lead',author:'Sarah Chen',email:'s.chen@techcorp.io',date:'May 29, 2025',time:'10:42 AM',body:"Hi Arpit,\n\nThanks for reaching out. I'm actually open to new opportunities at the moment — your message came at a perfect time.\n\nCould you share more details about the role? Specifically I'm interested in the tech stack and remote policy.\n\nLooking forward to hearing from you."}]},
+  {id:'t2',campaign:'hp',subject:'Re: Hogwarts House — an unusual email',lead:{name:'Marcus Webb',email:'m.webb@cloudbase.dev',domain:'cloudbase.dev',title:'DevOps Lead',company:'CloudBase',phone:'+1 (512) 555-0847',location:'Austin, TX',jobTitle:'Senior DevOps Engineer',linkedin:'https://linkedin.com/jobs/view/5678'},intent:'meeting',assignee:'ajeet',ts:'9:15 AM',unread:true,starred:true,done:false,sla:'ok',messages:[{from:'lead',author:'Marcus Webb',email:'m.webb@cloudbase.dev',date:'May 29, 2025',time:'9:15 AM',body:"Ha! The Harry Potter email got me — Slytherin, obviously.\n\nYes I'm open to a call. Thursday afternoon ET works well for me. What's the role? I'm at CloudBase but keeping an ear out."}]},
+  {id:'t3',campaign:'sled',subject:'Re: SLED sector opportunities — Q2',lead:{name:'Jennifer Park',email:'j.park@govtech.us',domain:'govtech.us',title:'IT Director',company:'GovTech Solutions',phone:'+1 (703) 555-0341',location:'Washington, DC',jobTitle:'IT Director — Federal Contracts',linkedin:'https://linkedin.com/jobs/view/9012'},intent:'ooo',assignee:'ayush',ts:'Yesterday',unread:false,starred:false,done:false,sla:'risk',messages:[{from:'lead',author:'Jennifer Park',email:'j.park@govtech.us',date:'May 28, 2025',time:'4:30 PM',body:"Hi,\n\nI'm currently out of the office until June 5th. For urgent matters please contact my colleague at procurement@govtech.us.\n\nI'll respond to your email when I return.\n\n– Jennifer Park, IT Director"}]},
+  {id:'t4',campaign:'w2',subject:'Re: Authorized to work in the US?',lead:{name:'Ravi Patel',email:'ravi.p@startupxyz.com',domain:'startupxyz.com',title:'Full-Stack Developer',company:'StartupXYZ',phone:'+1 (929) 555-0628',location:'New York, NY',jobTitle:'Full-Stack Engineer (React/Node)',linkedin:'https://linkedin.com/jobs/view/3456'},intent:'new',assignee:'arpit',ts:'Yesterday',unread:false,starred:false,done:false,sla:'ok',messages:[{from:'me',author:'Arpit Sharma',email:'arpit@consultadd.com',date:'May 27, 2025',time:'2:10 PM',body:"Hi Ravi,\n\nHope you're doing well! I came across your profile and thought you'd be a great fit for a Full-Stack Engineer role we're filling.\n\nAre you currently authorized to work in the US and open to new opportunities?\n\nBest,\nArpit"},{from:'lead',author:'Ravi Patel',email:'ravi.p@startupxyz.com',date:'May 28, 2025',time:'11:22 AM',body:"Yes, I'm authorized. What's the company and role? Send me the JD and I'll take a look."}]},
+  {id:'t5',campaign:'ct',subject:'Re: Cloud infrastructure — let\'s connect',lead:{name:'Amanda Torres',email:'a.torres@cloudco.net',domain:'cloudco.net',title:'Cloud Architect',company:'CloudCo',phone:'+1 (206) 555-0473',location:'Seattle, WA',jobTitle:'Senior Cloud Architect — AWS',linkedin:'https://linkedin.com/jobs/view/7890'},intent:'unsubscribe',assignee:'alok',ts:'2 days ago',unread:false,starred:false,done:true,sla:'ok',messages:[{from:'lead',author:'Amanda Torres',email:'a.torres@cloudco.net',date:'May 27, 2025',time:'8:55 AM',body:"Please remove me from your list. I'm not looking for work and this is my third email from your company.\n\nThank you."}]},
+  {id:'t6',campaign:'sled',subject:'Re: State & Local Government IT — ConsultAdd',lead:{name:'David Kim',email:'d.kim@stategov.org',domain:'stategov.org',title:'CTO',company:'State Government',phone:'+1 (615) 555-0184',location:'Nashville, TN',jobTitle:'CTO — Digital Services',linkedin:'https://linkedin.com/jobs/view/2468'},intent:'interested',assignee:'gursimar',ts:'2 days ago',unread:false,starred:true,done:false,sla:'breach',messages:[{from:'lead',author:'David Kim',email:'d.kim@stategov.org',date:'May 27, 2025',time:'3:45 PM',body:"Hi,\n\nThis is actually timely. We have a major digital transformation initiative starting Q3 and will need consultants with strong AWS and React background.\n\nCan you share your firm's past work with state government clients? And what's your typical engagement model?"}]},
+];
+
+</script>
+<script type="text/babel">
+/* ============================================================
+   PRIMITIVES
+   ============================================================ */
+function initials(name){const p=name.trim().split(/\s+/);return((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase()||name[0]?.toUpperCase()||'?';}
+const AV_COLORS=['var(--a-terra)','var(--a-slate)','var(--a-green)','var(--a-gold)','var(--a-plum)','var(--a-teal)','var(--a-indigo)','var(--a-rose)'];
+function colorFor(seed){let h=0;for(const c of(seed||''))h=(h*31+c.charCodeAt(0))>>>0;return AV_COLORS[h%AV_COLORS.length];}
+function Avatar({name,color,size='md',ring,style}){
+  const bg=color||colorFor(name);
+  return <div className={`av av-${size}${ring?' av-ring':''}`} style={{background:bg,color:ring?bg:'#fff',...style}}><span style={ring?{color:'#fff'}:undefined}>{initials(name)}</span></div>;
+}
+
+const INTENT={
+  interested:{label:'Interested',cls:'interested',dot:'var(--green)'},
+  new:{label:'New',cls:'new',dot:'var(--blue)'},
+  meeting:{label:'Meeting',cls:'meeting',dot:'var(--violet)'},
+  ooo:{label:'OOO',cls:'ooo',dot:'var(--amber)'},
+  unsubscribe:{label:'Unsubscribe',cls:'unsubscribe',dot:'var(--red)'},
+  nurture:{label:'Nurture',cls:'nurture',dot:'var(--ink-3)'},
+};
+function IntentBadge({intent,dot=true}){
+  const m=INTENT[intent]||INTENT.nurture;
+  return <span className={`badge ${m.cls}`}>{dot&&<span className="bdot" style={{background:m.dot}}/>}{m.label}</span>;
+}
+
+function Seg({options,value,onChange,size}){
+  return(
+    <div style={{display:'inline-flex',gap:3,padding:3,background:'var(--surface-inset)',border:'1px solid var(--line-2)',borderRadius:9}}>
+      {options.map(o=>{const v=o.value??o,lbl=o.label??o,on=v===value;
+        return <button key={v} onClick={()=>onChange(v)} style={{display:'inline-flex',alignItems:'center',gap:6,height:size==='sm'?26:30,padding:'0 12px',borderRadius:6,border:'none',fontWeight:600,fontSize:size==='sm'?12:12.5,background:on?'var(--surface)':'transparent',color:on?'var(--ink)':'var(--ink-3)',boxShadow:on?'var(--sh-xs)':'none',transition:'.12s'}}>
+          {o.icon&&<Icon name={o.icon} size={15}/>}{lbl}{o.count!=null&&<span className="tnum" style={{color:on?'var(--ink-3)':'var(--ink-4)',fontWeight:600}}>{o.count}</span>}
+        </button>;
+      })}
+    </div>
+  );
+}
+function Stat({label,value,sub,accent,big}){
+  return <div className="card" style={{padding:'16px 18px'}}>
+    <div className="kicker" style={{marginBottom:10}}>{label}</div>
+    <div className="metric-num" style={{fontSize:big?34:30,color:accent||'var(--ink)'}}>{value}</div>
+    {sub&&<div className="faint" style={{fontSize:12.5,marginTop:7}}>{sub}</div>}
+  </div>;
+}
+function Dot({color,size=8}){return <span style={{width:size,height:size,borderRadius:'50%',background:color,display:'inline-block',flex:'none'}}/>;}
+
+function MeterBar({value,max,color,h=8}){
+  const pct=max?Math.round(value/max*100):0;
+  return <div style={{height:h,borderRadius:99,background:'var(--surface-inset)',overflow:'hidden'}}>
+    <div style={{width:pct+'%',height:'100%',background:color||'var(--primary)',borderRadius:99,transition:'.3s'}}/>
+  </div>;
+}
+
+function Donut({pct,size=100,stroke=10,color='var(--primary)',children}){
+  const r=(size-stroke)/2,circ=2*Math.PI*r,off=circ*(1-pct/100);
+  return <div className="donut-wrap" style={{width:size,height:size}}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{transform:'rotate(-90deg)'}}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--surface-inset)" strokeWidth={stroke}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round" style={{transition:'.4s'}}/>
+    </svg>
+    <div className="donut-center">{children}</div>
+  </div>;
+}
+
+function Sparkline({data,h=140}){
+  const maxY=Math.max(...data.map(d=>d.y),1);
+  const w=data.length-1;
+  const pts=data.map((d,i)=>`${i/(w||1)*100},${(1-d.y/maxY)*h}`).join(' ');
+  const ptsI=data.map((d,i)=>`${i/(w||1)*100},${(1-d.yi/maxY)*h}`).join(' ');
+  return <svg viewBox={`0 0 100 ${h}`} preserveAspectRatio="none" style={{width:'100%',height:h,overflow:'visible'}}>
+    <defs>
+      <linearGradient id="sg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity=".18"/><stop offset="100%" stopColor="var(--primary)" stopOpacity="0"/></linearGradient>
+      <linearGradient id="sg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--green)" stopOpacity=".14"/><stop offset="100%" stopColor="var(--green)" stopOpacity="0"/></linearGradient>
+    </defs>
+    <polygon points={`0,${h} ${pts} 100,${h}`} fill="url(#sg1)"/>
+    <polyline points={pts} fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinejoin="round"/>
+    <polygon points={`0,${h} ${ptsI} 100,${h}`} fill="url(#sg2)"/>
+    <polyline points={ptsI} fill="none" stroke="var(--green)" strokeWidth="1.5" strokeLinejoin="round" strokeDasharray="3 2"/>
+  </svg>;
+}
+
+/* ============================================================
+   SHARED UI ATOMS
+   ============================================================ */
+const {useState:uS,useEffect:uE,useMemo:uM,useRef:uR}=React;
+
+function Popover({open,onClose,children,style}){
+  uE(()=>{if(!open)return;const h=()=>onClose();window.addEventListener('click',h);return()=>window.removeEventListener('click',h);},[open]);
+  if(!open)return null;
+  return <div onClick={e=>e.stopPropagation()} className="fade-in" style={{position:'absolute',zIndex:50,background:'var(--surface)',border:'1px solid var(--line)',borderRadius:12,boxShadow:'var(--sh-pop)',padding:6,minWidth:200,...style}}>{children}</div>;
+}
+function MenuItem({children,onClick,active}){
+  return <button onClick={onClick} style={{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'8px 10px',borderRadius:8,border:'none',background:active?'var(--primary-tint)':'transparent',color:active?'var(--primary-ink)':'var(--ink)',fontSize:13,fontWeight:500,textAlign:'left',transition:'.1s'}}
+    onMouseEnter={e=>{if(!active)e.currentTarget.style.background='var(--surface-inset)'}}
+    onMouseLeave={e=>{if(!active)e.currentTarget.style.background='transparent'}}>{children}</button>;
+}
+function Checkbox({on,indeterminate,onClick}){
+  return <button onClick={e=>{e.stopPropagation();onClick()}} className="cbx" data-on={on?'1':undefined}>
+    {on&&<Icon name="check" size={13}/>}
+    {indeterminate&&!on&&<span style={{width:9,height:2,background:'#fff',borderRadius:2}}/>}
+  </button>;
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+const AUTH=[
+  {email:'alok@consultadd.com',pass:'relay',handler:'alok',label:'Admin · sees everything'},
+  {email:'ayush.si@consultadd.com',pass:'relay',handler:'ayush',label:'Handler · SLED Outreach'},
+  {email:'arpit@consultadd.com',pass:'relay',handler:'arpit',label:'Handler · W2 Emails'},
+];
+function BrandMark({size=31}){
+  return <div className="brand-mark" style={{width:size,height:size,fontSize:size*.58,borderRadius:size*.26}}>R</div>;
+}
+function LoginMotif(){
+  return <svg viewBox="0 0 1000 1000" aria-hidden="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',opacity:.5}}>
+    {[0,1,2,3,4,5].map(i=><ellipse key={i} cx="500" cy="500" rx={150+i*88} ry={300+i*46} fill="none" stroke="var(--primary)" strokeOpacity={0.07-i*0.006} strokeWidth="1.3" transform={`rotate(${-28+i*7} 500 500)`}/>)}
+  </svg>;
+}
+function LoginScreen({brand,onLogin}){
+  const [mode,setMode]=uS('signin');
+  const [email,setEmail]=uS('');
+  const [pass,setPass]=uS('');
+  const [show,setShow]=uS(false);
+  const [err,setErr]=uS('');
+  const [busy,setBusy]=uS(false);
+  function submit(e){e&&e.preventDefault();setErr('');const acct=AUTH.find(a=>a.email.toLowerCase()===email.trim().toLowerCase()&&a.pass===pass);if(!acct){setErr(pass?'Incorrect email or password.':'Enter your password to continue.');return;}setBusy(true);setTimeout(()=>onLogin(acct.handler),420);}
+  function fill(a){setEmail(a.email);setPass(a.pass);setErr('');}
+  const field={display:'block',width:'100%',height:46,padding:'0 14px',borderRadius:9,border:'1px solid var(--line-strong)',background:'var(--surface)',fontSize:14.5,fontFamily:'var(--font-ui)',color:'var(--ink)',outline:'none',transition:'.12s'};
+  const onF=e=>e.target.style.borderColor='var(--primary)';
+  const onB=e=>e.target.style.borderColor='var(--line-strong)';
+  return(
+    <div style={{height:'100%',position:'relative',overflow:'auto',background:'var(--canvas)'}}>
+      <div style={{position:'fixed',inset:0,overflow:'hidden'}}><LoginMotif/></div>
+      <div style={{position:'relative',minHeight:'100%',display:'grid',placeItems:'center',padding:'48px 24px'}}>
+        <div style={{width:'100%',maxWidth:436}}>
+          <div style={{display:'flex',alignItems:'center',gap:11,marginBottom:30}}>
+            <BrandMark/><span className="serif" style={{fontWeight:600,fontSize:21,letterSpacing:'-.01em'}}>{brand}</span>
+            <span className="mono" style={{marginLeft:'auto',fontSize:10.5,letterSpacing:'.12em',color:'var(--ink-3)',textTransform:'uppercase'}}>Reply Manager</span>
+          </div>
+          {mode==='signin'&&<div>
+            <div className="mono" style={{fontSize:11,letterSpacing:'.14em',color:'var(--primary)',textTransform:'uppercase',marginBottom:12}}>Welcome back</div>
+            <h1 className="serif" style={{fontSize:36,fontWeight:600,letterSpacing:'-.02em',lineHeight:1.08,margin:'0 0 12px'}}>Every reply,<br/>in one loop.</h1>
+            <p className="muted" style={{margin:'0 0 26px',fontSize:14.5,lineHeight:1.55,maxWidth:380}}>Sign in to track, route and answer every reply from every Instantly campaign.</p>
+            <div className="card" style={{padding:'24px 22px',boxShadow:'var(--sh-card)'}}>
+              <form onSubmit={submit}>
+                <label className="kicker" style={{display:'block',marginBottom:7}}>Work email</label>
+                <input style={field} type="email" placeholder="you@company.com" value={email} onChange={e=>setEmail(e.target.value)} autoFocus onFocus={onF} onBlur={onB}/>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'18px 0 7px'}}>
+                  <label className="kicker">Password</label>
+                  <button type="button" onClick={()=>{setMode('forgot');setErr('')}} style={{border:'none',background:'none',color:'var(--primary)',fontWeight:600,fontSize:12.5,padding:0}}>Forgot password?</button>
+                </div>
+                <div style={{position:'relative'}}>
+                  <input style={{...field,paddingRight:44}} type={show?'text':'password'} placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onFocus={onF} onBlur={onB}/>
+                  <button type="button" onClick={()=>setShow(s=>!s)} className="icon-btn" style={{position:'absolute',right:8,top:8}} aria-label="toggle password"><Icon name="eye" size={17}/></button>
+                </div>
+                {err&&<div style={{display:'flex',alignItems:'center',gap:7,marginTop:14,color:'var(--red)',fontSize:13,fontWeight:500}}><Icon name="alert" size={15}/>{err}</div>}
+                <button className="btn primary lg block" type="submit" style={{marginTop:20}} disabled={busy}>{busy?'Signing in…':<>Sign in <Icon name="arrowR" size={17}/></>}</button>
+              </form>
+            </div>
+            <div style={{marginTop:22}}>
+              <div className="kicker" style={{marginBottom:10}}>Demo accounts · tap to fill</div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {AUTH.map(a=>{const h=DB.HANDLERS[a.handler];return(
+                  <button key={a.email} type="button" onClick={()=>fill(a)} style={{display:'flex',alignItems:'center',gap:11,padding:'9px 12px',borderRadius:10,border:'1px solid var(--line)',background:'rgba(255,255,255,.6)',textAlign:'left',transition:'.12s',backdropFilter:'blur(2px)'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='var(--surface)'}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--line)';e.currentTarget.style.background='rgba(255,255,255,.6)'}}>
+                    <Avatar name={h.name} color={h.color} size="sm"/>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{h.name}</div><div className="faint" style={{fontSize:11.5}}>{a.label}</div></div>
+                    <span className="mono faint" style={{fontSize:11}}>{a.pass}</span>
+                  </button>);})}
+              </div>
+            </div>
+          </div>}
+          {mode==='forgot'&&<div className="card" style={{padding:'26px 24px',boxShadow:'var(--sh-card)'}}>
+            <form onSubmit={e=>{e.preventDefault();setMode('sent')}}>
+              <button type="button" onClick={()=>setMode('signin')} className="btn ghost sm" style={{margin:'0 0 16px -8px'}}><Icon name="arrowL" size={16}/> Back</button>
+              <h1 className="serif" style={{fontSize:27,fontWeight:600,letterSpacing:'-.01em',margin:'0 0 6px'}}>Reset your password</h1>
+              <p className="faint" style={{margin:'0 0 22px',fontSize:14}}>Enter your email and we'll send a reset link.</p>
+              <label className="kicker" style={{display:'block',marginBottom:7}}>Work email</label>
+              <input style={field} type="email" placeholder="you@company.com" value={email} onChange={e=>setEmail(e.target.value)} autoFocus onFocus={onF} onBlur={onB}/>
+              <button className="btn primary lg block" type="submit" style={{marginTop:20}}>Send reset link</button>
+            </form>
+          </div>}
+          {mode==='sent'&&<div className="card" style={{padding:'30px 26px',textAlign:'center',boxShadow:'var(--sh-card)'}}>
+            <div style={{width:58,height:58,borderRadius:16,margin:'0 auto 18px',background:'var(--green-tint)',color:'var(--green)',display:'grid',placeItems:'center'}}><Icon name="checkCircle" size={30}/></div>
+            <h1 className="serif" style={{fontSize:25,fontWeight:600,letterSpacing:'-.01em',margin:'0 0 8px'}}>Check your inbox</h1>
+            <p className="faint" style={{fontSize:14,lineHeight:1.6,margin:'0 0 22px'}}>If an account exists for <strong style={{color:'var(--ink)'}}>{email||'that email'}</strong>, a reset link is on its way.</p>
+            <button className="btn block" onClick={()=>setMode('signin')}>Back to sign in</button>
+          </div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+</script>
+<script type="text/babel">
+/* ============================================================
+   THREAD / READER
+   ============================================================ */
+const QUICK=[
+  {label:'Send resume',text:`Thanks for the quick reply — happy to share. Please find my resume attached. I'm a strong match and available to talk this week.`},
+  {label:'Confirm work auth',text:`To confirm: I'm authorized to work in the U.S. and open to relocating for the right opportunity. Resume attached for your review.`},
+  {label:'Propose times',text:`I'd love to connect. I'm free Thursday 2–5pm ET or Friday morning ET — let me know what works and I'll send an invite.`},
+];
+function AttChip({f}){
+  return <div className="att-chip">
+    <span className="att-ic"><Icon name="fileText" size={16}/></span>
+    <div style={{minWidth:0}}><div style={{fontWeight:600,fontSize:12.5,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:170}}>{f.name}</div><div className="faint mono" style={{fontSize:10.5}}>{f.size}</div></div>
+    <button className="icon-btn" style={{width:26,height:26}} title="Download"><Icon name="download" size={15}/></button>
+  </div>;
+}
+function Message({m,leadName,open,onToggle,isLast}){
+  const mine=m.from==='me';
+  const snippet=m.body.replace(/\n+/g,' ').slice(0,92);
+  const recip=mine?`to ${leadName.split(' ')[0]}`:'to me';
+  if(!open){
+    return <button className="msg-collapsed" onClick={onToggle}>
+      {mine?<span className="msg-av-me">{initials(m.author)}</span>:<Avatar name={m.author} size="sm"/>}
+      <span style={{fontWeight:600,fontSize:13,whiteSpace:'nowrap'}}>{mine?'You':m.author.split(',')[0]}</span>
+      <span className="faint" style={{fontSize:12.5,flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{snippet}</span>
+      {m.files&&<Icon name="clip" size={14} style={{color:'var(--ink-3)',flex:'none'}}/>}
+      <span className="faint" style={{fontSize:11.5,whiteSpace:'nowrap',flex:'none'}}>{m.time}</span>
+    </button>;
+  }
+  return <div className={'msg'+(mine?' msg-mine':'')}>
+    <div className="msg-head">
+      {mine?<span className="msg-av-me md">{initials(m.author)}</span>:<Avatar name={m.author} size="md"/>}
+      <div style={{flex:1,minWidth:0}} onClick={isLast?undefined:onToggle}>
+        <div style={{display:'flex',alignItems:'baseline',gap:7,flexWrap:'wrap'}}>
+          <span style={{fontWeight:700,fontSize:14}}>{mine?'You':m.author}</span>
+          <span className="mono faint" style={{fontSize:11.5}}>&lt;{m.email}&gt;</span>
+        </div>
+        <div className="faint" style={{fontSize:11.5,display:'flex',alignItems:'center',gap:4,marginTop:1}}>{recip} <Icon name="chevD" size={12}/></div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:2,flex:'none'}}>
+        <span className="faint" style={{fontSize:11.5,marginRight:6,whiteSpace:'nowrap'}}>{m.date.replace(/,\s*\d{4}/,'')} · {m.time}</span>
+        <button className="icon-btn" style={{width:28,height:28}} title="Star"><Icon name="star" size={16}/></button>
+        <button className="icon-btn" style={{width:28,height:28}} title="Reply"><Icon name="reply" size={16}/></button>
+        <button className="icon-btn" style={{width:28,height:28}} title="More"><Icon name="dotsV" size={16}/></button>
+      </div>
+    </div>
+    <div className="msg-body">{m.body}</div>
+    {m.files&&<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:14}}>
+      <div className="kicker" style={{width:'100%',marginBottom:2}}>{m.files.length} attachment{m.files.length>1?'s':''}</div>
+      {m.files.map((f,i)=><AttChip key={i} f={f}/>)}
+    </div>}
+  </div>;
+}
+function Composer({thread,handler,onSend}){
+  const [mode,setMode]=uS('reply');
+  const [draft,setDraft]=uS('');
+  const [cc,setCc]=uS(false);
+  const c=DB.CAMPAIGNS[thread.campaign];
+  const fwd=mode==='forward';
+  function submit(){if(!draft.trim())return;onSend(draft.trim());setDraft('');}
+  const tabs=[['reply','reply','Reply'],['replyAll','replyAll','Reply all'],['forward','forward','Forward']];
+  return <div className="composer">
+    <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap'}}>
+      {QUICK.map(q=><button key={q.label} onClick={()=>setDraft(d=>d?d:q.text)} className="tmpl-chip"><Icon name="sparkle" size={12}/>{q.label}</button>)}
+    </div>
+    <div className="composer-card">
+      <div className="composer-tabs">
+        {tabs.map(([v,ic,lbl])=><button key={v} className={'ctab'+(mode===v?' on':'')} onClick={()=>setMode(v)}><Icon name={ic} size={14}/>{lbl}</button>)}
+        <span style={{marginLeft:'auto'}}/><button className="ctab" onClick={()=>setCc(s=>!s)} data-on={cc?'1':undefined}>Cc/Bcc</button>
+      </div>
+      <div className="composer-field"><span className="cf-label">To</span><span className="cf-val mono">{fwd?'':thread.lead.email}</span>{fwd&&<span className="faint" style={{fontSize:12.5}}>Add recipients…</span>}</div>
+      {cc&&<div className="composer-field"><span className="cf-label">Cc</span><span className="faint" style={{fontSize:12.5}}>Add Cc…</span></div>}
+      <div className="composer-field"><span className="cf-label">Subj</span><span className="cf-val">{(fwd?'Fwd: ':'')+thread.subject.replace(/^(Re|Fwd):\s*/i,'Re: ')}</span></div>
+      <textarea value={draft} onChange={e=>setDraft(e.target.value)} rows={4} placeholder={`Write your ${fwd?'forward note':'reply'}…`} className="composer-text"/>
+      <div className="composer-bar">
+        <div style={{display:'flex',gap:1}}>
+          {['bold','italic','link'].map(b=><button key={b} className="icon-btn" style={{width:30,height:30}} title={b}><Icon name={b} size={16}/></button>)}
+          <span style={{width:1,background:'var(--line)',margin:'5px 4px'}}/>
+          <button className="icon-btn" style={{width:30,height:30}} title="Attach"><Icon name="clip" size={16}/></button>
+          <button className="icon-btn" style={{width:30,height:30}} title="Emoji"><Icon name="smile" size={16}/></button>
+        </div>
+        <span className="faint mono" style={{fontSize:11,marginLeft:4,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>via {c.sentFrom}</span>
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+          <button className="icon-btn" style={{width:32,height:32}} title="Discard"><Icon name="trash" size={16}/></button>
+          <button className="btn primary sm" onClick={submit} disabled={!draft.trim()}><Icon name="send" size={15}/> Send</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+function ThreadReader({thread,handler,isAdmin,onUpdate,onClose,layout,onToggleLead,leadOpen}){
+  const c=DB.CAMPAIGNS[thread.campaign];
+  const msgs=thread.messages;
+  const [expanded,setExpanded]=uS(()=>new Set([msgs.length-1]));
+  const [reassignOpen,setReassignOpen]=uS(false);
+  const [moreOpen,setMoreOpen]=uS(false);
+  const scrollRef=uR(null);
+  uE(()=>{setExpanded(new Set([thread.messages.length-1]));if(scrollRef.current)scrollRef.current.scrollTop=0;},[thread.id]);
+  function toggle(i){setExpanded(s=>{const n=new Set(s);n.has(i)?n.delete(i):n.add(i);return n;});}
+  function expandAll(){setExpanded(new Set(msgs.map((_,i)=>i)));}
+  const intents=['new','interested','meeting','ooo','unsubscribe'];
+  function send(body){const now=new Date();const nm={from:'me',author:handler.name,email:c.sentFrom,date:'Today',time:now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}),body};onUpdate(thread.id,{unread:false,messages:[...thread.messages,nm]});setExpanded(new Set([thread.messages.length]));setTimeout(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},60);}
+  const collapsedCount=msgs.length-expanded.size;
+  return <div className="reader">
+    <div className="reader-toolbar">
+      <button className="btn ghost sm" onClick={onClose} style={{display:layout==='stack'?'inline-flex':'none',marginRight:2}}><Icon name="arrowL" size={16}/></button>
+      <button className="ico-act" onClick={()=>onUpdate(thread.id,{done:true})} title="Archive"><Icon name="archive" size={18}/></button>
+      <button className="ico-act" onClick={()=>onUpdate(thread.id,{snoozed:true})} title="Snooze"><Icon name="snooze" size={18}/></button>
+      <button className="ico-act" onClick={()=>onUpdate(thread.id,{done:!thread.done})} data-active={thread.done?'1':undefined} title="Mark done"><Icon name="check" size={18}/></button>
+      <button className="ico-act" title="Label"><Icon name="tag" size={18}/></button>
+      <span className="tb-sep"/>
+      {isAdmin&&<div style={{position:'relative'}}>
+        <button className="btn sm" onClick={e=>{e.stopPropagation();setReassignOpen(o=>!o)}}><Icon name="users" size={15}/> Reassign <Icon name="chevD" size={13}/></button>
+        <Popover open={reassignOpen} onClose={()=>setReassignOpen(false)} style={{top:38,left:0}}>
+          <div className="kicker" style={{padding:'6px 10px 4px'}}>Assign to</div>
+          {Object.keys(DB.HANDLERS).map(hid=>{const h=DB.HANDLERS[hid];return <MenuItem key={hid} active={thread.assignee===hid} onClick={()=>{onUpdate(thread.id,{assignee:hid});setReassignOpen(false)}}><Avatar name={h.name} color={h.color} size="xs"/>{h.name}{thread.assignee===hid&&<Icon name="check" size={15} style={{marginLeft:'auto'}}/>}</MenuItem>;})}
+          <hr className="divider" style={{margin:'5px 6px'}}/>
+          <MenuItem onClick={()=>{onUpdate(thread.id,{assignee:null});setReassignOpen(false)}}><span className="unassign-dot"><Icon name="x" size={11}/></span>Unassign</MenuItem>
+        </Popover>
+      </div>}
+      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:2}}>
+        <button className="ico-act" title="Print"><Icon name="printer" size={18}/></button>
+        <div style={{position:'relative'}}>
+          <button className="ico-act" onClick={e=>{e.stopPropagation();setMoreOpen(o=>!o)}} title="More"><Icon name="dotsV" size={18}/></button>
+          <Popover open={moreOpen} onClose={()=>setMoreOpen(false)} style={{top:36,right:0}}>
+            <MenuItem onClick={()=>{expandAll();setMoreOpen(false)}}><Icon name="expand" size={16}/>Expand all</MenuItem>
+            <MenuItem onClick={()=>{onUpdate(thread.id,{unread:true});setMoreOpen(false)}}><Icon name="mail" size={16}/>Mark unread</MenuItem>
+            <MenuItem onClick={()=>setMoreOpen(false)}><Icon name="forward" size={16}/>Forward all</MenuItem>
+            <MenuItem onClick={()=>setMoreOpen(false)}><Icon name="trash" size={16}/>Delete</MenuItem>
+          </Popover>
+        </div>
+        <span className="tb-sep"/>
+        <button className="ico-act" onClick={onToggleLead} title="Details panel" data-active={leadOpen?'1':undefined}><Icon name="panel" size={18}/></button>
+      </div>
+    </div>
+    <div ref={scrollRef} className="reader-scroll">
+      <div className="reader-inner">
+        <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:8}}>
+          <button className="icon-btn" style={{width:30,height:30,marginTop:2}} onClick={()=>onUpdate(thread.id,{starred:!thread.starred})} title="Star">
+            <Icon name={thread.starred?'starF':'star'} size={19} style={{color:thread.starred?'var(--accent-warm)':'var(--ink-3)'}}/></button>
+          <h1 className="thread-subject" style={{fontSize:23,lineHeight:1.22,margin:0,flex:1}}>{thread.subject}</h1>
+        </div>
+        <div className="faint" style={{fontSize:12.5,marginBottom:18,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',paddingLeft:40}}>
+          <IntentBadge intent={thread.intent}/>
+          <span style={{display:'inline-flex',alignItems:'center',gap:6}}><Icon name="mail" size={13}/>{msgs.length} message{msgs.length!==1?'s':''}</span>
+          <span>·</span><span>via <span style={{color:c.color,fontWeight:600}}>{c.name}</span></span>
+        </div>
+        {collapsedCount>0&&<button onClick={expandAll} className="expand-strip"><Icon name="expand" size={15}/> Expand {collapsedCount} collapsed message{collapsedCount>1?'s':''}</button>}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {msgs.map((m,i)=><Message key={i} m={m} leadName={thread.lead.name} isLast={i===msgs.length-1} open={expanded.has(i)} onToggle={()=>toggle(i)}/>)}
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 4px',flexWrap:'wrap'}}>
+          <span className="kicker" style={{marginRight:2}}>Set intent</span>
+          {intents.map(k=><button key={k} onClick={()=>onUpdate(thread.id,{intent:k})} style={{padding:0,border:'none',background:'none',cursor:'pointer',opacity:thread.intent===k?1:.4,transition:'.12s'}} title={INTENT[k].label}><IntentBadge intent={k}/></button>)}
+        </div>
+      </div>
+    </div>
+    <Composer thread={thread} handler={handler} onSend={send}/>
+  </div>;
+}
+function LeadField({label,children,mono}){
+  return <div><div className="kicker" style={{marginBottom:4}}>{label}</div>
+    <div className={mono?'mono':''} style={{fontSize:mono?12.5:13.5,fontWeight:mono?500:600,wordBreak:'break-word'}}>{children}</div></div>;
+}
+function LeadPanel({thread,onClose}){
+  const c=DB.CAMPAIGNS[thread.campaign];
+  const h=thread.assignee?DB.HANDLERS[thread.assignee]:null;
+  const l=thread.lead;
+  const [copied,setCopied]=uS(false);
+  function copy(){try{navigator.clipboard.writeText(l.email)}catch(e){}setCopied(true);setTimeout(()=>setCopied(false),1200);}
+  return <aside className="lead-panel">
+    <div style={{padding:'16px 20px 16px',borderBottom:'1px solid var(--line)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+        <span className="kicker">Lead</span>
+        <button className="icon-btn" onClick={onClose} title="Hide panel" style={{width:26,height:26}}><Icon name="x" size={15}/></button>
+      </div>
+      <div style={{display:'flex',gap:12,alignItems:'center'}}>
+        <Avatar name={l.name} size="lg"/>
+        <div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16,letterSpacing:'-.01em'}}>{l.name}</div><div className="faint" style={{fontSize:12.5}}>{l.title}</div></div>
+      </div>
+      <div style={{display:'flex',gap:7,marginTop:13,flexWrap:'wrap'}}>
+        <IntentBadge intent={thread.intent}/>
+        <span className={'badge '+(thread.sla==='breach'?'sla-breach':thread.sla==='risk'?'sla-risk':'sla-ok')}><Icon name="clock" size={12}/>SLA {thread.sla==='breach'?'breached':thread.sla==='risk'?'at risk':'on time'}</span>
+      </div>
+    </div>
+    <div style={{padding:'16px 20px',borderBottom:'1px solid var(--line)'}}>
+      <div className="kicker" style={{marginBottom:8}}>Job posting</div>
+      <div style={{fontSize:13.5,fontWeight:600,lineHeight:1.4,marginBottom:11}}>{l.jobTitle}</div>
+      <a href={l.linkedin} target="_blank" rel="noreferrer" className="btn primary block" style={{textDecoration:'none'}}><Icon name="linkedin" size={17}/> Open job on LinkedIn <Icon name="external" size={14}/></a>
+      <div className="mono faint" style={{fontSize:10.5,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{l.linkedin}</div>
+    </div>
+    <div style={{padding:'18px 20px',display:'grid',gap:16}}>
+      <div className="kicker">Lead details</div>
+      <div>
+        <div className="kicker" style={{marginBottom:4}}>Email</div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span className="mono" style={{fontSize:12.5,fontWeight:500,wordBreak:'break-word',flex:1}}>{l.email}</span>
+          <button className="icon-btn" onClick={copy} style={{width:26,height:26}} title="Copy"><Icon name={copied?'check':'fileText'} size={14} style={copied?{color:'var(--green)'}:undefined}/></button>
+        </div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+        <LeadField label="Company">{l.company}</LeadField>
+        <LeadField label="Phone" mono>{l.phone}</LeadField>
+      </div>
+      <LeadField label="Location">{l.location}</LeadField>
+      <LeadField label="Sent from" mono>{c.sentFrom}</LeadField>
+      <hr className="divider"/>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+        <div><div className="kicker" style={{marginBottom:6}}>Campaign</div><div style={{display:'flex',alignItems:'center',gap:7,fontSize:13,fontWeight:600}}><Dot color={c.color}/>{c.name.replace(/ —.*$/,'')}</div></div>
+        <div><div className="kicker" style={{marginBottom:6}}>Owner</div>{h?<div style={{display:'flex',alignItems:'center',gap:7,fontSize:13,fontWeight:600}}><Avatar name={h.name} color={h.color} size="xs"/>{h.first}</div>:<span className="faint" style={{fontSize:13}}>Unassigned</span>}</div>
+      </div>
+    </div>
+  </aside>;
+}
+
+</script>
+<script type="text/babel">
+/* ============================================================
+   INBOX SCREEN
+   ============================================================ */
+function ReplyRow({thread,active,selected,onOpen,onToggleSel,onUpdate}){
+  const c=DB.CAMPAIGNS[thread.campaign];
+  const last=thread.messages[thread.messages.length-1];
+  const preview=last.body.replace(/\n+/g,' ').slice(0,72);
+  const hasAtt=thread.messages.some(m=>m.files);
+  return <div className="reply-row" data-active={active?'1':undefined} data-unread={thread.unread&&!thread.done?'1':undefined} data-sel={selected?'1':undefined} data-done={thread.done?'1':undefined} onClick={onOpen}>
+    <div className="row-ctrl">
+      <Checkbox on={selected} onClick={onToggleSel}/>
+      <button className="star-btn" onClick={e=>{e.stopPropagation();onUpdate(thread.id,{starred:!thread.starred})}} title="Star"><Icon name={thread.starred?'starF':'star'} size={16} style={{color:thread.starred?'var(--accent-warm)':'var(--ink-4)'}}/></button>
+    </div>
+    <div className="row-av"><Avatar name={thread.lead.name} size="md"/></div>
+    <div className="row-main">
+      <div className="row-top">
+        <span className="row-sender">{thread.lead.name}</span>
+        <span className="faint" style={{fontSize:11.5,whiteSpace:'nowrap'}}>· {thread.lead.domain}</span>
+        {hasAtt&&<Icon name="clip" size={13} style={{color:'var(--ink-3)',flex:'none'}}/>}
+        <span className="row-date">{thread.ts}</span>
+        <div className="row-actions" onClick={e=>e.stopPropagation()}>
+          <button className="ico-act sm" title="Archive" onClick={()=>onUpdate(thread.id,{done:true})}><Icon name="archive" size={16}/></button>
+          <button className="ico-act sm" title="Snooze" onClick={()=>onUpdate(thread.id,{snoozed:true})}><Icon name="snooze" size={16}/></button>
+          <button className="ico-act sm" title={thread.done?'Reopen':'Mark done'} onClick={()=>onUpdate(thread.id,{done:!thread.done})}><Icon name="check" size={16}/></button>
+        </div>
+      </div>
+      <div className="row-subj">{thread.subject.replace(/^Re:\s*/,'Re: ')}</div>
+      <div className="row-bottom"><IntentBadge intent={thread.intent}/><span className="row-snip">{preview}…</span><span className="row-camp"><Dot color={c.color} size={7}/>{c.name.replace(/ —.*$/,'').slice(0,16)}</span></div>
+    </div>
+  </div>;
+}
+function EmptyReader(){
+  return <div className="reader" style={{display:'grid',placeItems:'center'}}>
+    <div style={{textAlign:'center',color:'var(--ink-3)',maxWidth:300}}>
+      <div style={{width:62,height:62,borderRadius:16,background:'var(--surface)',border:'1px solid var(--line)',display:'grid',placeItems:'center',margin:'0 auto 16px',color:'var(--ink-4)'}}><Icon name="mail" size={28}/></div>
+      <div className="serif" style={{fontWeight:600,color:'var(--ink-2)',fontSize:18}}>Select a conversation</div>
+      <p style={{fontSize:13,lineHeight:1.55,marginTop:6}}>Open any reply to read the full thread, attachments, lead details and the job link.</p>
+    </div>
+  </div>;
+}
+function InboxScreen({threads,handler,isAdmin,onUpdate,filter}){
+  const [sel,setSel]=uS(null);
+  const [selected,setSelected]=uS(()=>new Set());
+  const [sort,setSort]=uS('newest');
+  const [stat,setStat]=uS('all');
+  const [campF,setCampF]=uS('all');
+  const [leadOpen,setLeadOpen]=uS(true);
+  uE(()=>{setSelected(new Set());setSel(null);},[filter&&filter.title]);
+  let list=threads.slice();
+  if(stat==='new') list=list.filter(t=>t.unread&&!t.done);
+  else if(stat==='unassigned') list=list.filter(t=>!t.assignee);
+  else if(stat==='done') list=list.filter(t=>t.done);
+  else if(stat==='starred') list=list.filter(t=>t.starred);
+  else list=list.filter(t=>!t.done);
+  if(campF!=='all') list=list.filter(t=>t.campaign===campF);
+  if(filter&&filter.campaign) list=list.filter(t=>t.campaign===filter.campaign);
+  if(sort==='oldest') list=list.slice().reverse();
+  const selThread=sel?threads.find(t=>t.id===sel):null;
+  const camps=[...new Set(threads.map(t=>t.campaign))];
+  const statusTabs=[
+    {value:'all',label:'Open',count:threads.filter(t=>!t.done).length},
+    {value:'new',label:'New',count:threads.filter(t=>t.unread&&!t.done).length},
+    {value:'starred',label:'Starred',count:threads.filter(t=>t.starred).length},
+    {value:'unassigned',label:'Unassigned',count:threads.filter(t=>!t.assignee).length},
+    {value:'done',label:'Done',count:threads.filter(t=>t.done).length},
+  ];
+  function toggleSel(id){setSelected(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});}
+  function selAll(){setSelected(s=>s.size===list.length?new Set():new Set(list.map(t=>t.id)));}
+  function bulk(patch){selected.forEach(id=>onUpdate(id,patch));setSelected(new Set());}
+  const allSel=list.length>0&&selected.size===list.length;
+  const someSel=selected.size>0;
+  return <div style={{display:'flex',flex:1,minWidth:0,overflow:'hidden'}}>
+    <div className="mailbox">
+      <div className="mailbox-head">
+        {someSel?(<div className="bulk-bar">
+          <Checkbox on={allSel} indeterminate={someSel} onClick={selAll}/>
+          <span style={{fontWeight:600,fontSize:13}}>{selected.size} selected</span>
+          <span className="tb-sep"/>
+          <button className="ico-act sm" title="Archive" onClick={()=>bulk({done:true})}><Icon name="archive" size={17}/></button>
+          <button className="ico-act sm" title="Mark done" onClick={()=>bulk({done:true})}><Icon name="check" size={17}/></button>
+          <button className="ico-act sm" title="Snooze" onClick={()=>bulk({snoozed:true})}><Icon name="snooze" size={17}/></button>
+          <button className="ico-act sm" title="Mark read" onClick={()=>bulk({unread:false})}><Icon name="mail" size={17}/></button>
+          <button className="ico-act sm" title="Label"><Icon name="tag" size={17}/></button>
+          <button className="ico-act sm" title="Delete" onClick={()=>bulk({done:true})}><Icon name="trash" size={17}/></button>
+          <button className="btn ghost sm" style={{marginLeft:'auto'}} onClick={()=>setSelected(new Set())}>Clear</button>
+        </div>):(<div style={{display:'flex',alignItems:'center',gap:8,width:'100%'}}>
+          <Checkbox on={false} onClick={selAll}/>
+          <div style={{flex:1,minWidth:0}}><div className="serif" style={{fontWeight:600,fontSize:17,letterSpacing:'-.01em',lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{filter&&filter.title?filter.title:'Inbox'}</div></div>
+          <div style={{flex:'none',display:'flex',alignItems:'center',gap:2}}>
+            <span className="faint tnum" style={{fontSize:12,marginRight:6,whiteSpace:'nowrap'}}>1–{list.length} of {list.length}</span>
+            <button className="ico-act sm" title="Refresh"><Icon name="refresh" size={16}/></button>
+            <button className="ico-act sm" title="Sort" onClick={()=>setSort(s=>s==='newest'?'oldest':'newest')}><Icon name="sort" size={16}/></button>
+          </div>
+        </div>)}
+      </div>
+      {!someSel&&<div className="mailbox-filters">
+        <div className="seg-scroll"><Seg size="sm" options={statusTabs} value={stat} onChange={setStat}/></div>
+        {camps.length>1&&<div className="camp-chips">
+          <button onClick={()=>setCampF('all')} className={'chip'+(campF==='all'?' on':'')} style={{height:25,fontSize:11.5}}>All</button>
+          {camps.map(cid=>{const c=DB.CAMPAIGNS[cid];return <button key={cid} onClick={()=>setCampF(cid)} className={'chip'+(campF===cid?' on':'')} style={{height:25,fontSize:11.5}}><Dot color={c.color} size={7}/>{c.name.replace(/ —.*$/,'').replace(/ Arpit-Alok| Test/,'')}</button>;})}
+        </div>}
+      </div>}
+      <div className="mailbox-list">
+        {list.map(t=><ReplyRow key={t.id} thread={t} active={t.id===sel} selected={selected.has(t.id)}
+          onOpen={()=>{setSel(t.id);if(t.unread)onUpdate(t.id,{unread:false})}}
+          onToggleSel={()=>toggleSel(t.id)} onUpdate={onUpdate}/>)}
+        {list.length===0&&<div style={{padding:'52px 24px',textAlign:'center',color:'var(--ink-3)'}}><Icon name="inbox" size={30} style={{margin:'0 auto 10px'}}/><div style={{fontSize:13}}>Nothing here. Inbox zero.</div></div>}
+      </div>
+    </div>
+    {selThread?<>
+      <ThreadReader thread={selThread} handler={handler} isAdmin={isAdmin} onUpdate={onUpdate} onClose={()=>setSel(null)} layout="split" leadOpen={leadOpen} onToggleLead={()=>setLeadOpen(o=>!o)}/>
+      {leadOpen&&<LeadPanel thread={selThread} onClose={()=>setLeadOpen(false)}/>}
+    </>:<EmptyReader/>}
+  </div>;
+}
+
+/* ============================================================
+   CAMPAIGNS SCREEN
+   ============================================================ */
+function campStats(cid,threads){
+  const t=threads.filter(x=>x.campaign===cid);
+  return {replies:t.length,neu:t.filter(x=>x.unread&&!x.done).length,interested:t.filter(x=>x.intent==='interested').length,meetings:t.filter(x=>x.intent==='meeting').length,done:t.filter(x=>x.done).length};
+}
+function CampaignCard({c,st,isAdmin,onSetOwner,onOpenInbox}){
+  const [own,setOwn]=uS(false);
+  const owner=c.owner?DB.HANDLERS[c.owner]:null;
+  const pct=st.replies?Math.round(st.done/st.replies*100):0;
+  return <div className="card" style={{padding:18,display:'flex',flexDirection:'column'}}>
+    <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:16}}>
+      <Dot color={c.color} size={9}/>
+      <span style={{fontWeight:700,fontSize:15,letterSpacing:'-.01em',flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.name}</span>
+      <span className="badge" style={{background:'var(--green-tint)',color:'#246347',height:20}}><span className="bdot" style={{background:'var(--green)'}}/>active</span>
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:18}}>
+      <Donut pct={pct} size={78} stroke={8} color={c.color}>
+        <div style={{textAlign:'center'}}><div className="tnum" style={{fontWeight:800,fontSize:16}}>{pct}%</div><div className="kicker" style={{fontSize:8.5}}>handled</div></div>
+      </Donut>
+      <div style={{flex:1,display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
+        {[['new replies',st.neu,'var(--ink)'],['interested',st.interested,'var(--green)'],['meetings',st.meetings,'var(--ink)']].map(s=><div key={s[0]}><div className="tnum" style={{fontWeight:800,fontSize:21,color:s[2]}}>{s[1]}</div><div className="faint" style={{fontSize:10.5,lineHeight:1.2,marginTop:2}}>{s[0]}</div></div>)}
+      </div>
+    </div>
+    <hr className="divider" style={{margin:'16px 0 13px'}}/>
+    <div style={{display:'flex',alignItems:'center',gap:9}}>
+      <span className="kicker">Owner</span>
+      <div style={{position:'relative'}}>
+        <button onClick={e=>{if(isAdmin){e.stopPropagation();setOwn(o=>!o)}}} disabled={!isAdmin} style={{display:'flex',alignItems:'center',gap:7,border:'1px solid '+(isAdmin?'var(--line)':'transparent'),background:isAdmin?'var(--surface)':'transparent',borderRadius:99,padding:owner?'3px 10px 3px 3px':'5px 12px',fontWeight:600,fontSize:12.5,cursor:isAdmin?'pointer':'default'}}>
+          {owner?<><Avatar name={owner.name} color={owner.color} size="xs"/>{owner.first}</>:<span className="faint" style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:18,height:18,borderRadius:'50%',background:'var(--surface-inset)',border:'1px dashed var(--line-strong)',display:'grid',placeItems:'center'}}><Icon name="user" size={11}/></span>Unassigned</span>}
+          {isAdmin&&<Icon name="chevD" size={12} style={{color:'var(--ink-3)'}}/>}
+        </button>
+        <Popover open={own} onClose={()=>setOwn(false)} style={{bottom:36,left:0}}>
+          <div className="kicker" style={{padding:'6px 10px 4px'}}>Set owner</div>
+          {Object.values(DB.HANDLERS).map(h=><MenuItem key={h.id} active={c.owner===h.id} onClick={()=>{onSetOwner(c.id,h.id);setOwn(false)}}><Avatar name={h.name} color={h.color} size="xs"/>{h.name}<span className="faint" style={{fontSize:11,marginLeft:'auto'}}>{h.role==='admin'?'Admin':h.org}</span></MenuItem>)}
+          <hr className="divider" style={{margin:'5px 6px'}}/>
+          <MenuItem onClick={()=>{onSetOwner(c.id,null);setOwn(false)}}><span style={{width:20,height:20,borderRadius:'50%',background:'var(--surface-inset)',border:'1px dashed var(--line-strong)',display:'grid',placeItems:'center',color:'var(--ink-3)'}}><Icon name="x" size={11}/></span>Unassign</MenuItem>
+        </Popover>
+      </div>
+      <div style={{marginLeft:'auto',display:'flex',gap:7}}>
+        <button className="btn sm" onClick={()=>onOpenInbox(c.id)}>View inbox</button>
+        {isAdmin&&<button className="icon-btn" style={{border:'1px solid var(--line)'}}><Icon name="more" size={17}/></button>}
+      </div>
+    </div>
+  </div>;
+}
+function CampaignsScreen({campaigns,threads,isAdmin,onSetOwner,onOpenInbox}){
+  const list=Object.values(campaigns);
+  return <div className="content"><div className="page">
+    <div className="page-head">
+      <div><div className="page-title">Campaigns</div><div className="page-sub">{list.length} active · {threads.length} replies routed · assign an owner to route every reply</div></div>
+      {isAdmin&&<button className="btn primary"><Icon name="plus" size={16}/> New campaign</button>}
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:16}}>
+      {list.map(c=><CampaignCard key={c.id} c={c} st={campStats(c.id,threads)} isAdmin={isAdmin} onSetOwner={onSetOwner} onOpenInbox={onOpenInbox}/>)}
+      {isAdmin&&<button onClick={()=>{}} style={{minHeight:200,border:'1.5px dashed var(--line-strong)',borderRadius:'var(--r-lg)',background:'transparent',color:'var(--ink-3)',display:'grid',placeItems:'center',gap:8,fontWeight:600,fontSize:13.5,transition:'.12s'}} onMouseEnter={e=>{e.currentTarget.style.background='var(--surface-2)';e.currentTarget.style.color='var(--ink-2)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--ink-3)'}}>
+        <Icon name="plus" size={22}/> Connect another campaign from Instantly
+      </button>}
+    </div>
+  </div></div>;
+}
+
+/* ============================================================
+   ADMIN SCREEN
+   ============================================================ */
+function HandlerAssign({c,onSetHandlers}){
+  const [open,setOpen]=uS(false);
+  const chips=c.handlers.length
+    ? c.handlers.map(hid=>{const h=DB.HANDLERS[hid];return <span key={hid} style={{display:'inline-flex',alignItems:'center',gap:6,background:'var(--surface-inset)',border:'1px solid var(--line)',borderRadius:99,padding:'3px 9px 3px 3px',fontSize:12.5,fontWeight:600}}>
+        <Avatar name={h.name} color={h.color} size="xs"/>{h.first}
+        <button onClick={e=>{e.stopPropagation();onSetHandlers(c.id,c.handlers.filter(x=>x!==hid))}} className="faint" style={{border:'none',background:'none',padding:0,display:'flex'}}><Icon name="x" size={12}/></button>
+      </span>;})
+    : <span className="faint" style={{fontSize:13,padding:'2px 4px',whiteSpace:'nowrap'}}>+ Assign handlers</span>;
+  return <div style={{position:'relative'}}>
+    <div onClick={e=>{e.stopPropagation();setOpen(o=>!o)}} style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',minHeight:38,padding:'4px 8px',border:'1px dashed var(--line-strong)',borderRadius:10,cursor:'pointer',background:'var(--surface)'}}>
+      {chips}
+      <Icon name="chevD" size={14} style={{color:'var(--ink-3)',marginLeft:'auto'}}/>
+    </div>
+    <Popover open={open} onClose={()=>setOpen(false)} style={{top:42,left:0,right:0}}>
+      {Object.values(DB.HANDLERS).map(h=>{const on=c.handlers.includes(h.id);return <MenuItem key={h.id} active={on} onClick={()=>onSetHandlers(c.id,on?c.handlers.filter(x=>x!==h.id):[...c.handlers,h.id])}>
+        <Avatar name={h.name} color={h.color} size="xs"/>{h.name}
+        <span className="faint" style={{fontSize:11,marginLeft:'auto'}}>{h.role==='admin'?'Admin':h.org}</span>
+        {on&&<Icon name="check" size={15} style={{color:'var(--primary)'}}/>}
+      </MenuItem>;})}
+    </Popover>
+  </div>;
+}
+function AdminScreen({campaigns,threads,onSetHandlers,onSetOwner}){
+  const [tab,setTab]=uS('assign');
+  const handlers=Object.values(DB.HANDLERS);
+  function assigned(hid){return threads.filter(t=>t.assignee===hid).length;}
+  function camps(hid){return Object.values(campaigns).filter(c=>c.handlers.includes(hid)||c.owner===hid);}
+  return <div className="content"><div className="page">
+    <div className="page-head">
+      <div><div className="page-title">Admin panel</div><div className="page-sub">Manage handlers, campaign assignments and access control</div></div>
+      <button className="btn primary"><Icon name="check" size={16}/> Save changes</button>
+    </div>
+    <div style={{display:'flex',gap:4,borderBottom:'1px solid var(--line)',marginBottom:24}}>
+      {[['assign','Campaign assignments'],['handlers','Handlers & access']].map(t=><button key={t[0]} onClick={()=>setTab(t[0])} style={{position:'relative',padding:'10px 4px',marginRight:18,border:'none',background:'none',fontWeight:600,fontSize:14,whiteSpace:'nowrap',color:tab===t[0]?'var(--ink)':'var(--ink-3)'}}>
+        {t[1]}{tab===t[0]&&<span style={{position:'absolute',left:0,right:0,bottom:-1,height:2,background:'var(--primary)',borderRadius:2}}/>}
+      </button>)}
+    </div>
+    {tab==='assign'?<>
+      <p className="muted" style={{fontSize:13.5,marginBottom:18,maxWidth:640}}>Assign one or multiple handlers to each campaign. Handlers only see replies from their assigned campaigns.</p>
+      <div className="card" style={{overflow:'hidden'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1.1fr 2fr 92px',gap:14,padding:'12px 20px',borderBottom:'1px solid var(--line)',background:'var(--surface-2)'}}>
+          <div className="kicker">Campaign</div><div className="kicker">Assigned handlers</div><div className="kicker">SLA target</div></div>
+        {Object.values(campaigns).map((c,i)=>{const st=campStats(c.id,threads);return <div key={c.id} style={{display:'grid',gridTemplateColumns:'1.1fr 2fr 92px',gap:14,padding:'15px 20px',alignItems:'center',borderBottom:i<Object.values(campaigns).length-1?'1px solid var(--line-2)':'none'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <Dot color={c.color} size={9}/>
+            <div style={{minWidth:0}}><div style={{fontWeight:600,fontSize:13.5,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.name}</div><div className="faint" style={{fontSize:11.5}}>{st.replies} replies</div></div>
+          </div>
+          <HandlerAssign c={c} onSetHandlers={onSetHandlers}/>
+          <select defaultValue={c.sla} style={{height:34,borderRadius:8,border:'1px solid var(--line)',padding:'0 8px',background:'var(--surface)',fontFamily:'inherit',fontSize:13,color:'var(--ink)'}}><option>1h</option><option>2h</option><option>4h</option><option>8h</option></select>
+        </div>;})}
+      </div>
+      <div style={{display:'flex',gap:10,alignItems:'flex-start',marginTop:16,padding:'12px 16px',background:'var(--primary-tint-2)',border:'1px solid #e4e5f5',borderRadius:11,fontSize:13,color:'var(--primary-ink)'}}>
+        <Icon name="shield" size={17} style={{flex:'none',marginTop:1}}/>
+        <span>Each handler only sees replies from their assigned campaigns when they log in. The admin role sees every campaign and every reply.</span>
+      </div>
+    </>:<>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <p className="muted" style={{fontSize:13.5,margin:0}}>Manage who can log in, their passwords and their roles.</p>
+        <button className="btn primary sm"><Icon name="plus" size={15}/> Add handler</button>
+      </div>
+      <div style={{display:'grid',gap:12}}>
+        {handlers.map(h=>{const cs=camps(h.id);return <div key={h.id} className="card" style={{padding:'16px 18px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+          <Avatar name={h.name} color={h.color} size="lg"/>
+          <div style={{flex:1,minWidth:200}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontWeight:700,fontSize:15}}>{h.name}</span><span className={'badge '+(h.role==='admin'?'solid':'ghost')} style={{height:19,fontSize:10.5}}>{h.role==='admin'?'Admin':'Handler'}</span></div>
+            <div className="mono faint" style={{fontSize:11.5,margin:'3px 0 8px'}}>{h.email} · {assigned(h.id)} assigned replies</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              {cs.length?cs.map(c=><span key={c.id} className="badge nurture" style={{height:20}}><Dot color={c.color} size={6}/>{c.name.replace(/ —.*$/,'').replace(/ Arpit-Alok/,'')}</span>):<span className="faint" style={{fontSize:12.5,fontStyle:'italic'}}>No campaigns assigned</span>}
+            </div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span className="mono faint" style={{fontSize:12,letterSpacing:'.2em'}}>••••</span>
+            <button className="btn sm"><Icon name="lock" size={14}/> Reset password</button>
+            <button className="btn sm" style={{color:'var(--red)'}}>Remove</button>
+          </div>
+        </div>;})}
+      </div>
+    </>}
+  </div></div>;
+}
+
+</script>
+<script type="text/babel">
+/* ============================================================
+   ANALYTICS + TEAM SCREENS
+   ============================================================ */
+function liveStats(threads){
+  return {awaiting:threads.filter(t=>t.unread&&!t.done).length,interested:threads.filter(t=>t.intent==='interested').length,meetings:threads.filter(t=>t.intent==='meeting').length,total:threads.length};
+}
+function AnalyticsScreen({threads}){
+  const A=DB.ANALYTICS;
+  const s=liveStats(threads);
+  const [range,setRange]=uS('30d');
+  const maxLead=Math.max(...A.leaderboard.map(l=>l.replies));
+  const intentMax=Math.max(...A.intent.map(i=>i.value));
+  const slaTotal=A.sla.ontime+A.sla.risk+A.sla.breach;
+  const slaPct=Math.round(A.sla.ontime/slaTotal*100);
+  const byCamp=Object.values(DB.CAMPAIGNS).map(c=>({c,n:threads.filter(t=>t.campaign===c.id).length}));
+  const campMax=Math.max(...byCamp.map(x=>x.n),1);
+  return <div className="content"><div className="page" style={{maxWidth:1180}}>
+    <div className="page-head">
+      <div><div className="page-title">Analytics</div><div className="page-sub">Last 30 days · {s.total} replies handled</div></div>
+      <div style={{display:'flex',gap:8}}>
+        <Seg size="sm" options={[{value:'7d',label:'7d'},{value:'30d',label:'30d'},{value:'90d',label:'90d'}]} value={range} onChange={setRange}/>
+        <button className="btn sm"><Icon name="external" size={15}/> Export</button>
+      </div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:16}}>
+      <Stat label="Replies handled" value={s.total} sub="total received"/>
+      <Stat label="Interested" value={s.interested} sub={`${Math.round(s.interested/Math.max(s.total,1)*100)}% of replies`} accent="var(--green)"/>
+      <Stat label="SLA met" value={slaPct+'%'} sub="target 90%" accent="var(--amber)"/>
+      <Stat label="Meetings booked" value={s.meetings} sub="from replies"/>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr',gap:16,marginBottom:16}}>
+      <div className="card panel-pad">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+          <span style={{fontWeight:700,fontSize:15,whiteSpace:'nowrap'}}>Reply volume</span>
+          <div style={{display:'flex',gap:14,fontSize:12}}>
+            <span style={{display:'flex',alignItems:'center',gap:6,color:'var(--ink-2)'}}><Dot color="var(--primary)"/>Replies received</span>
+            <span style={{display:'flex',alignItems:'center',gap:6,color:'var(--ink-2)'}}><Dot color="var(--green)"/>Interested</span>
+          </div>
+        </div>
+        <Sparkline data={A.volume} h={170}/>
+        <div style={{display:'flex',justifyContent:'space-between',marginTop:8}} className="faint">
+          {['22','23','24','25','26','27','28','29'].map(d=><span key={d} style={{fontSize:10.5}}>{d} May</span>)}
+        </div>
+      </div>
+      <div className="card panel-pad">
+        <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>Team leaderboard</div>
+        <div style={{display:'grid',gap:12}}>
+          {A.leaderboard.map((l,i)=>{const h=DB.HANDLERS[l.h];return <div key={i} style={{display:'flex',alignItems:'center',gap:11}}>
+            <span className="tnum faint" style={{width:12,fontWeight:700,fontSize:13}}>{i+1}</span>
+            <Avatar name={h.name} color={h.color} size="sm"/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}><span style={{fontWeight:600,fontSize:13}}>{h.name}</span><span className="tnum faint" style={{fontSize:12}}>{l.replies}</span></div>
+              <MeterBar value={l.replies} max={maxLead} color={h.color} h={5}/>
+            </div>
+          </div>;})}
+        </div>
+      </div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+      <div className="card panel-pad">
+        <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>Reply intent breakdown</div>
+        <div style={{display:'grid',gap:11}}>
+          {A.intent.map(it=><div key={it.key} style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{display:'flex',alignItems:'center',gap:7,width:96,fontSize:12.5,fontWeight:500}}><Dot color={it.color}/>{it.label}</span>
+            <div style={{flex:1}}><MeterBar value={it.value} max={intentMax} color={it.color} h={6}/></div>
+            <span className="tnum faint" style={{fontSize:12,width:20,textAlign:'right'}}>{it.value}</span>
+          </div>)}
+        </div>
+      </div>
+      <div className="card panel-pad">
+        <div style={{fontWeight:700,fontSize:15,marginBottom:10}}>SLA performance</div>
+        <div style={{display:'flex',alignItems:'center',gap:18}}>
+          <Donut pct={slaPct} size={104} stroke={11} color="var(--amber)"><div className="tnum" style={{fontWeight:800,fontSize:21}}>{slaPct}%</div></Donut>
+          <div style={{flex:1,display:'grid',gap:12}}>
+            {[['On time',A.sla.ontime,'var(--green)'],['At risk',A.sla.risk,'var(--amber)'],['Breached',A.sla.breach,'var(--red)']].map(r=><div key={r[0]} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span style={{display:'flex',alignItems:'center',gap:7,fontSize:12.5,whiteSpace:'nowrap'}}><Dot color={r[2]}/>{r[0]}</span>
+              <span className="tnum" style={{fontWeight:700,fontSize:14}}>{r[1]}</span>
+            </div>)}
+          </div>
+        </div>
+      </div>
+      <div className="card panel-pad">
+        <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>By campaign</div>
+        <div style={{display:'grid',gap:12}}>
+          {byCamp.map(({c,n})=><div key={c.id} style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{display:'flex',alignItems:'center',gap:7,flex:1,minWidth:0,fontSize:12.5}}><Dot color={c.color}/><span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.name.replace(/ —.*$/,'')}</span></span>
+            <div style={{width:64}}><MeterBar value={n} max={campMax} color={c.color} h={6}/></div>
+            <span className="tnum faint" style={{fontSize:12,width:18,textAlign:'right'}}>{n}</span>
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </div></div>;
+}
+function TeamScreen({threads,onGoInbox}){
+  const s=liveStats(threads);
+  const handlers=Object.values(DB.HANDLERS).filter(h=>h.role==='handler');
+  function load(hid){const t=threads.filter(x=>x.assignee===hid);return {total:t.length,neu:t.filter(x=>x.unread&&!x.done).length,interested:t.filter(x=>x.intent==='interested').length,meetings:t.filter(x=>x.intent==='meeting').length,ooo:t.filter(x=>x.intent==='ooo').length};}
+  const maxLoad=Math.max(...handlers.map(h=>load(h.id).total),1);
+  const A=DB.ANALYTICS,slaTotal=A.sla.ontime+A.sla.risk+A.sla.breach,slaPct=Math.round(A.sla.ontime/slaTotal*100);
+  const byCamp=Object.values(DB.CAMPAIGNS).map(c=>({c,n:threads.filter(t=>t.campaign===c.id).length}));
+  const campMax=Math.max(...byCamp.map(x=>x.n),1);
+  return <div className="content"><div className="page" style={{maxWidth:1180}}>
+    <div className="page-head">
+      <div><div className="page-title">Team overview</div><div className="page-sub">Today · {s.total} replies in queue · <span style={{color:'var(--primary)',fontWeight:600}}>{s.awaiting} new</span></div></div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:16}}>
+      <Stat label="Awaiting reply" value={s.awaiting} sub="needs a response" accent="var(--primary)"/>
+      <Stat label="Interested" value={s.interested} sub="high intent" accent="var(--green)"/>
+      <Stat label="SLA met" value={slaPct+'%'} sub="target 90%" accent="var(--amber)"/>
+      <Stat label="Meetings" value={s.meetings} sub="booked this week"/>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',gap:16,alignItems:'start'}}>
+      <div className="card panel-pad">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <span style={{fontWeight:700,fontSize:15,whiteSpace:'nowrap'}}>Workload</span>
+          <span className="faint" style={{fontSize:12.5}}>{handlers.length} handlers active</span>
+        </div>
+        <div style={{display:'grid',gap:14}}>
+          {handlers.map(h=>{const L=load(h.id);return <div key={h.id} onClick={()=>onGoInbox&&onGoInbox(h.id)} style={{display:'flex',gap:13,alignItems:'center',cursor:'pointer',padding:'4px 6px',borderRadius:10,transition:'.1s'}} onMouseEnter={e=>e.currentTarget.style.background='var(--surface-2)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+            <Avatar name={h.name} color={h.color} size="md"/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontWeight:600,fontSize:14,whiteSpace:'nowrap'}}>{h.name}</span><span className="tnum" style={{fontWeight:800,fontSize:18}}>{L.total}</span></div>
+              <div className="faint" style={{fontSize:11.5,margin:'2px 0 7px'}}><span style={{color:L.neu?'var(--primary)':'inherit',fontWeight:L.neu?600:400}}>{L.neu} new</span> · {L.interested} interested · {L.meetings} meetings{L.ooo?` · ${L.ooo} OOO`:''}</div>
+              <MeterBar value={L.total} max={maxLoad} color={h.color} h={6}/>
+            </div>
+          </div>;})}
+        </div>
+      </div>
+      <div style={{display:'grid',gap:16}}>
+        <div className="card panel-pad">
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>
+            <span style={{fontWeight:700,fontSize:15,whiteSpace:'nowrap'}}>SLA today</span>
+            <span className="tnum" style={{fontWeight:700,color:'var(--amber)'}}>{slaPct}%</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:16}}>
+            <Donut pct={slaPct} size={92} stroke={10} color="var(--amber)"><div className="tnum" style={{fontWeight:800,fontSize:18}}>{slaPct}%</div></Donut>
+            <div style={{flex:1,display:'grid',gap:9}}>
+              {[['On time',A.sla.ontime,'var(--green)'],['At risk',A.sla.risk,'var(--amber)'],['Breached',A.sla.breach,'var(--red)']].map(r=><div key={r[0]} style={{display:'flex',justifyContent:'space-between',fontSize:12.5}}>
+                <span style={{display:'flex',alignItems:'center',gap:7,whiteSpace:'nowrap'}}><Dot color={r[2]}/>{r[0]}</span>
+                <span className="tnum" style={{fontWeight:700}}>{r[1]}</span>
+              </div>)}
+            </div>
+          </div>
+        </div>
+        <div className="card panel-pad">
+          <div style={{fontWeight:700,fontSize:15,marginBottom:13}}>By campaign</div>
+          <div style={{display:'grid',gap:11}}>
+            {byCamp.map(({c,n})=><div key={c.id} style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{display:'flex',alignItems:'center',gap:7,flex:1,minWidth:0,fontSize:12.5}}><Dot color={c.color}/><span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.name.replace(/ —.*$/,'')}</span></span>
+              <div style={{width:58}}><MeterBar value={n} max={campMax} color={c.color} h={6}/></div>
+              <span className="tnum faint" style={{fontSize:12,width:16,textAlign:'right'}}>{n}</span>
+            </div>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+const ACCENTS={
+  '#0E6B66':{name:'Teal',strong:'#0A4F4B',ink:'#0B4642',tint:'#E1EFED',tint2:'#EFF6F4'},
+  '#2E6B45':{name:'Pine',strong:'#1F4E31',ink:'#1E4A2F',tint:'#E5EFE8',tint2:'#F1F6F2'},
+  '#2B2E2A':{name:'Graphite',strong:'#16191A',ink:'#26302A',tint:'#E8E9E4',tint2:'#F2F3EE'},
+  '#8A3A3A':{name:'Oxblood',strong:'#6E2C2C',ink:'#6B2B2B',tint:'#F2E3E1',tint2:'#F9F0EE'},
+  '#8A6420':{name:'Amber',strong:'#6F4E15',ink:'#684915',tint:'#F1E8D5',tint2:'#F8F3E8'},
+};
+function applyTheme(accent){
+  const a=ACCENTS[accent]||ACCENTS['#0E6B66'];
+  const r=document.documentElement.style;
+  r.setProperty('--primary',accent);r.setProperty('--primary-strong',a.strong);
+  r.setProperty('--primary-ink',a.ink);r.setProperty('--primary-tint',a.tint);
+  r.setProperty('--primary-tint-2',a.tint2);
+}
+function Sidebar({brand,handler,isAdmin,route,setRoute,accessCamps,go,onLogout,accent,setAccent,density,setDensity}){
+  const [menu,setMenu]=uS(false);
+  const [settingsOpen,setSettingsOpen]=uS(false);
+  const nav=isAdmin
+    ?[['inbox','Inbox','inbox'],['mine','My replies','user'],['team','Team','users'],['campaigns','Campaigns','campaign'],['admin','Admin panel','shield'],['analytics','Analytics','chart']]
+    :[['inbox','Inbox','inbox'],['mine','My replies','user'],['campaigns','Campaigns','campaign']];
+  const scopeOpen=handler.scopeOpen,mineN=handler.mineN;
+  return <div className="sidebar">
+    <div className="sb-brand">
+      <BrandMark/><span className="brand-name">{brand}</span>
+      {isAdmin&&<span className="badge solid" style={{height:18,fontSize:9.5,marginLeft:'auto'}}>ADMIN</span>}
+    </div>
+    <div className="sb-scroll">
+      <div className="sb-search"><Icon name="search" size={15}/> Search replies…</div>
+      {nav.map(([key,label,ic])=><div key={key} className={'nav-item'+(route===key?' active':'')} onClick={()=>setRoute(key)}>
+        <Icon name={ic} size={18} className="nav-ic"/>
+        <span className="nav-label">{label}</span>
+        {key==='inbox'&&<span className="nav-count">{scopeOpen}</span>}
+        {key==='mine'&&<span className="nav-count">{mineN}</span>}
+        {key==='campaigns'&&<span className="nav-count">{accessCamps.length}</span>}
+      </div>)}
+      <div className="sb-group-label">Campaigns</div>
+      {accessCamps.map(c=><div key={c.id} className="nav-item" onClick={()=>go({route:'inbox',campaign:c.id,title:c.name})}>
+        <span className="nav-dot" style={{background:c.color}}/><span className="nav-label">{c.name}</span>
+      </div>)}
+      {isAdmin&&<>
+        <div className="sb-group-label">Handlers</div>
+        {Object.values(DB.HANDLERS).filter(h=>h.role==='handler').map(h=><div key={h.id} className="nav-item" onClick={()=>go({route:'inbox',assignee:h.id,title:h.name+' · replies'})}>
+          <Avatar name={h.name} color={h.color} size="xs"/><span className="nav-label" style={{marginLeft:2}}>{h.name}</span>
+        </div>)}
+      </>}
+    </div>
+    <div className="sb-foot">
+      <Avatar name={handler.name} color={handler.color} size="md"/>
+      <div className="uf"><div className="uf-name">{handler.name}</div><div className="uf-role">{isAdmin?'Admin':handler.org}</div></div>
+      <div style={{position:'relative'}}>
+        <button className="icon-btn" onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}><Icon name="more" size={18}/></button>
+        <Popover open={menu} onClose={()=>setMenu(false)} style={{bottom:38,right:0,minWidth:170}}>
+          <div style={{padding:'7px 10px 4px'}}><div style={{fontWeight:600,fontSize:13}}>{handler.name}</div><div className="mono faint" style={{fontSize:11}}>{handler.email}</div></div>
+          <hr className="divider" style={{margin:'5px 6px'}}/>
+          <MenuItem onClick={()=>{setMenu(false);setSettingsOpen(true)}}><Icon name="more" size={16}/> Preferences</MenuItem>
+          <MenuItem onClick={onLogout}><Icon name="logout" size={16}/> Sign out</MenuItem>
+        </Popover>
+      </div>
+    </div>
+    {settingsOpen&&<div style={{position:'fixed',inset:0,zIndex:100,background:'rgba(26,28,24,.4)',backdropFilter:'blur(2px)',display:'grid',placeItems:'center'}} onClick={()=>setSettingsOpen(false)}>
+      <div className="card" style={{width:320,padding:'20px 22px',boxShadow:'var(--sh-pop)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+          <span className="serif" style={{fontWeight:600,fontSize:17}}>Preferences</span>
+          <button className="icon-btn" onClick={()=>setSettingsOpen(false)}><Icon name="x" size={16}/></button>
+        </div>
+        <div className="kicker" style={{marginBottom:10}}>Accent color</div>
+        <div style={{display:'flex',gap:8,marginBottom:18}}>
+          {Object.entries(ACCENTS).map(([hex,a])=><button key={hex} onClick={()=>setAccent(hex)} style={{width:32,height:32,borderRadius:'50%',background:hex,border:accent===hex?`3px solid var(--ink)`:'3px solid transparent',transition:'.12s'}} title={a.name}/>)}
+        </div>
+        <div className="kicker" style={{marginBottom:10}}>Density</div>
+        <Seg options={['compact','regular','comfy']} value={density} onChange={setDensity}/>
+        <button className="btn primary block" style={{marginTop:20}} onClick={()=>setSettingsOpen(false)}>Done</button>
+      </div>
+    </div>}
+  </div>;
+}
+
+</script>
+<script type="text/babel">
+/* ============================================================
+   APP ROOT
+   ============================================================ */
+function App(){
+  const [session,setSession]=uS(null);
+  const [route,setRoute]=uS('inbox');
+  const [filter,setFilter]=uS(null);
+  const [threads,setThreads]=uS(()=>THREADS_INIT.map(x=>({...x,messages:x.messages.slice()})));
+  const [campaigns,setCampaigns]=uS(()=>JSON.parse(JSON.stringify(DB.CAMPAIGNS)));
+  const [accent,setAccent]=uS('#0E6B66');
+  const [density,setDensity]=uS('regular');
+
+  uE(()=>applyTheme(accent),[accent]);
+  uE(()=>{document.body.classList.remove('compact','comfy');if(density==='compact')document.body.classList.add('compact');if(density==='comfy')document.body.classList.add('comfy');},[density]);
+
+  const handler=session?DB.HANDLERS[session]:null;
+  const isAdmin=handler&&handler.role==='admin';
+
+  const accessCamps=uM(()=>{
+    if(!handler)return [];
+    const all=Object.values(campaigns);
+    if(isAdmin)return all;
+    return all.filter(c=>c.handlers.includes(session)||c.owner===session);
+  },[campaigns,session]);
+
+  const scoped=uM(()=>{
+    if(!handler)return [];
+    if(isAdmin)return threads;
+    const ids=new Set(accessCamps.map(c=>c.id));
+    return threads.filter(x=>ids.has(x.campaign));
+  },[threads,accessCamps,session]);
+
+  function onUpdate(id,patch){setThreads(ts=>ts.map(x=>x.id===id?{...x,...patch}:x));}
+  function onSetOwner(cid,hid){setCampaigns(cs=>({...cs,[cid]:{...cs[cid],owner:hid,handlers:hid&&!cs[cid].handlers.includes(hid)?[...cs[cid].handlers,hid]:cs[cid].handlers}}));}
+  function onSetHandlers(cid,arr){setCampaigns(cs=>({...cs,[cid]:{...cs[cid],handlers:arr,owner:cs[cid].owner&&arr.includes(cs[cid].owner)?cs[cid].owner:(arr[0]||null)}}));}
+  function go(o){setRoute(o.route||'inbox');setFilter(o);}
+  function setRouteClean(r){setRoute(r);setFilter(null);}
+
+  if(!session)return <LoginScreen brand="Replyloop" onLogin={id=>{setSession(id);setRoute('inbox');setFilter(null);}}/>;
+  DB.CAMPAIGNS=campaigns;
+
+  let viewThreads=scoped,title=null;
+  if(route==='mine'){viewThreads=scoped.filter(x=>x.assignee===session);title='My replies';}
+  if(route==='inbox'&&filter){if(filter.assignee){viewThreads=scoped.filter(x=>x.assignee===filter.assignee);}title=filter.title;}
+  const navHandler={...handler,scopeOpen:scoped.filter(x=>!x.done).length,mineN:scoped.filter(x=>x.assignee===session&&x.unread&&!x.done).length};
+
+  return <div className="app">
+    <Sidebar brand="Replyloop" handler={navHandler} isAdmin={isAdmin} route={route}
+      setRoute={setRouteClean} accessCamps={accessCamps} go={go} onLogout={()=>setSession(null)}
+      accent={accent} setAccent={setAccent} density={density} setDensity={setDensity}/>
+    <div className="main">
+      {(route==='inbox'||route==='mine')&&
+        <InboxScreen key={(route)+'-'+(filter&&(filter.campaign||filter.assignee||filter.title)||'')}
+          threads={viewThreads} handler={handler} isAdmin={isAdmin} onUpdate={onUpdate}
+          filter={{...(filter||{}),title}}/>}
+      {route==='campaigns'&&<CampaignsScreen campaigns={campaigns} threads={scoped} isAdmin={isAdmin} onSetOwner={onSetOwner} onOpenInbox={cid=>go({route:'inbox',campaign:cid,title:campaigns[cid].name})}/>}
+      {route==='admin'&&isAdmin&&<AdminScreen campaigns={campaigns} threads={threads} onSetHandlers={onSetHandlers} onSetOwner={onSetOwner}/>}
+      {route==='analytics'&&isAdmin&&<AnalyticsScreen threads={threads}/>}
+      {route==='team'&&isAdmin&&<TeamScreen threads={threads} onGoInbox={hid=>go({route:'inbox',assignee:hid,title:DB.HANDLERS[hid].name+' · replies'})}/>}
+    </div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
