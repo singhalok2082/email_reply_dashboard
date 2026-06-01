@@ -154,6 +154,24 @@ function Checkbox({on,indeterminate,onClick}){
 /* ============================================================
    DATA HELPERS — map Supabase rows to UI thread objects
    ============================================================ */
+function stripQuotedReply(body){
+  if(!body) return ''
+  const separators=[
+    /\r?\n[-_]{3,}\r?\n/,
+    /\r?\nFrom:\s+/im,
+    /\r?\nOn .+wrote:/im,
+    /\r?\n>+\s/m,
+    /\r?\nSent:\s+/im,
+    /\r?\n-{3,}Original Message-{3,}/im,
+  ]
+  let result=body
+  for(const sep of separators){
+    const idx=result.search(sep)
+    if(idx>80) result=result.slice(0,idx)
+  }
+  return result.trim()
+}
+
 function rowToThread(r){
   const messages=[]
   if(r.sent_email_body){
@@ -163,16 +181,17 @@ function rowToThread(r){
       email: r.sending_email||'',
       date: fmtDateLong(r.created_at),
       time: '',
-      body: r.sent_email_body,
+      body: stripQuotedReply(r.sent_email_body),
     })
   }
+  const replyBody=stripQuotedReply(r.reply_body||r.reply_full||'')
   messages.push({
     from:'lead',
     author: r.lead_name||r.lead_email||'Lead',
     email: r.lead_email||'',
     date: fmtDateLong(r.created_at),
     time: fmtTime(r.created_at),
-    body: r.reply_body||r.reply_full||'(no content)',
+    body: replyBody||'(no content)',
   })
   return {
     id: r.id,
