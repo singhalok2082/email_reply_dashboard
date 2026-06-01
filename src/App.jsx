@@ -691,10 +691,22 @@ function AdminScreen({threads,handlers,campaigns}){
    ANALYTICS + TEAM SCREENS
    ============================================================ */
 function AnalyticsScreen({threads,handlers}){
+  const [sends,setSends]=uS([])
+  const [sendsLoading,setSendsLoading]=uS(true)
+
+  uE(()=>{
+    supabase.from('instantly_sends').select('campaign_name,event_type,created_at')
+      .order('created_at',{ascending:false}).limit(5000)
+      .then(({data})=>{setSends(data||[]);setSendsLoading(false)})
+  },[])
+
   const total=threads.length
   const interested=threads.filter(t=>t.intent==='interested').length
   const meetings=threads.filter(t=>t.intent==='meeting').length
   const open=threads.filter(t=>!t.done).length
+  const totalSends=sends.filter(s=>s.event_type==='email_sent').length
+  const replyRate=totalSends?Math.round(total/totalSends*100):0
+
   const intents=[
     {key:'interested',label:'Interested',color:'var(--green)'},
     {key:'meeting',label:'Meeting',color:'var(--violet)'},
@@ -707,14 +719,89 @@ function AnalyticsScreen({threads,handlers}){
   const maxLead=Math.max(...leaderboard.map(l=>l.replies),1)
   const camps=[...new Set(threads.map(t=>t.campaign))].filter(Boolean)
   const campMax=Math.max(...camps.map(c=>threads.filter(t=>t.campaign===c).length),1)
-  return <div className="content"><div className="page" style={{maxWidth:1180}}>
-    <div className="page-head"><div><div className="page-title">Analytics</div><div className="page-sub">{total} total replies</div></div></div>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:16}}>
-      <Stat label="Total replies" value={total} sub="all time"/>
-      <Stat label="Interested" value={interested} sub={total?`${Math.round(interested/total*100)}% of replies`:''} accent="var(--green)"/>
-      <Stat label="Open" value={open} sub="needs response" accent="var(--primary)"/>
-      <Stat label="Meetings" value={meetings} sub="booked from replies"/>
+
+  // Daily volume - last 14 days
+  const days=Array.from({length:14},(_,i)=>{
+    const d=new Date(); d.setDate(d.getDate()-13+i)
+    const key=d.toISOString().slice(0,10)
+    const label=d.toLocaleDateString([],{month:'short',day:'numeric'})
+    const daySends=sends.filter(s=>s.event_type==='email_sent'&&s.created_at?.slice(0,10)===key).length
+    const dayReplies=threads.filter(t=>t.ts&&new Date(t.created_at||'').toISOString().slice(0,10)===key).length
+    return {key,label,sends:daySends,replies:dayReplies}
+  })
+  const maxDay=Math.max(...days.map(d=>Math.max(d.sends,d.replies)),1)
+
+  // Campaign send/reply table
+  const campStats=camps.map(c=>({
+    name:c,
+    sends:sends.filter(s=>s.event_type==='email_sent'&&s.campaign_name===c).length,
+    replies:threads.filter(t=>t.campaign===c).length,
+    interested:threads.filter(t=>t.campaign===c&&t.intent==='interested').length,
+    meetings:threads.filter(t=>t.campaign===c&&t.intent==='meeting').length,
+  })).map(c=>({...c,rate:c.sends?Math.round(c.replies/c.sends*100):0}))
+    .sort((a,b)=>b.replies-a.replies)
+
+  return <div className="content"><div className="page" style={{maxWidth:1200}}>
+    <div className="page-head">
+      <div><div className="page-title">Analytics</div><div className="page-sub">{total} replies · {totalSends} emails sent{replyRate?` · ${replyRate}% reply rate`:''}</div></div>
     </div>
+
+    {/* TOP STATS */}
+    <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:14,marginBottom:20}}>
+      <Stat label="Emails sent" value={totalSends||'—'} sub={sendsLoading?'loading…':'all campaigns'}/>
+      <Stat label="Total replies" value={total} sub="all time"/>
+      <Stat label="Reply rate" value={replyRate?(replyRate+'%'):'—'} sub="replies / sends" accent="var(--primary)"/>
+      <Stat label="Interested" value={interested} sub={total?`${Math.round(interested/total*100)}% of replies`:''} accent="var(--green)"/>
+      <Stat label="Meetings" value={meetings} sub="booked from replies" accent="var(--violet)"/>
+    </div>
+
+    {/* DAILY VOLUME CHART */}
+    <div className="card panel-pad" style={{marginBottom:16}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <span style={{fontWeight:700,fontSize:15}}>Daily volume — last 14 days</span>
+        <div style={{display:'flex',gap:16,fontSize:12}}>
+          <span style={{display:'flex',alignItems:'center',gap:6,color:'var(--ink-2)'}}><Dot color="var(--primary)" size={9}/>Emails sent</span>
+          <span style={{display:'flex',alignItems:'center',gap:6,color:'var(--ink-2)'}}><Dot color="var(--green)" size={9}/>Replies</span>
+        </div>
+      </div>
+      <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
+        {days.map(d=><div key={d.key} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+          <div style={{width:'100%',display:'flex',gap:2,alignItems:'flex-end',height:96}}>
+            <div style={{flex:1,background:'var(--primary)',borderRadius:'3px 3px 0 0',opacity:.7,height:maxDay?(d.sends/maxDay*96)+'px':'0px',minHeight:d.sends?2:0,transition:'.3s'}}/>
+            <div style={{flex:1,background:'var(--green)',borderRadius:'3px 3px 0 0',height:maxDay?(d.replies/maxDay*96)+'px':'0px',minHeight:d.replies?2:0,transition:'.3s'}}/>
+          </div>
+          <div className="faint" style={{fontSize:9.5,whiteSpace:'nowrap',transform:'rotate(-35deg)',transformOrigin:'center',marginTop:4}}>{d.label}</div>
+        </div>)}
+      </div>
+      {totalSends===0&&!sendsLoading&&<div style={{marginTop:12,padding:'10px 14px',background:'var(--primary-tint-2)',borderRadius:8,fontSize:12.5,color:'var(--primary-ink)'}}>
+        Send data will appear here once Instantly starts firing webhook events for sent emails. The webhook is live and ready.
+      </div>}
+    </div>
+
+    {/* CAMPAIGN PERFORMANCE TABLE */}
+    {campStats.length>0&&<div className="card" style={{overflow:'hidden',marginBottom:16}}>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 80px 80px 80px 80px 80px',gap:12,padding:'12px 20px',borderBottom:'1px solid var(--line)',background:'var(--surface-2)'}}>
+        <div className="kicker">Campaign</div>
+        <div className="kicker" style={{textAlign:'right'}}>Sent</div>
+        <div className="kicker" style={{textAlign:'right'}}>Replies</div>
+        <div className="kicker" style={{textAlign:'right'}}>Rate</div>
+        <div className="kicker" style={{textAlign:'right'}}>Interested</div>
+        <div className="kicker" style={{textAlign:'right'}}>Meetings</div>
+      </div>
+      {campStats.map((c,i)=><div key={c.name} style={{display:'grid',gridTemplateColumns:'2fr 80px 80px 80px 80px 80px',gap:12,padding:'13px 20px',alignItems:'center',borderBottom:i<campStats.length-1?'1px solid var(--line-2)':'none'}}>
+        <div style={{display:'flex',alignItems:'center',gap:9}}>
+          <Dot color={colorFor(c.name)} size={8}/>
+          <span style={{fontWeight:600,fontSize:13.5,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.name.replace(/ —.*$/,'')}</span>
+        </div>
+        <div className="tnum" style={{textAlign:'right',fontSize:13.5,color:'var(--ink-2)'}}>{c.sends||'—'}</div>
+        <div className="tnum" style={{textAlign:'right',fontSize:13.5,fontWeight:600}}>{c.replies}</div>
+        <div className="tnum" style={{textAlign:'right',fontSize:13.5,color:c.rate>15?'var(--green)':c.rate>5?'var(--amber)':'var(--ink-3)',fontWeight:600}}>{c.sends?(c.rate+'%'):'—'}</div>
+        <div className="tnum" style={{textAlign:'right',fontSize:13.5,color:'var(--green)'}}>{c.interested}</div>
+        <div className="tnum" style={{textAlign:'right',fontSize:13.5,color:'var(--violet)'}}>{c.meetings}</div>
+      </div>)}
+    </div>}
+
+    {/* BOTTOM ROW */}
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
       <div className="card panel-pad">
         <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>Intent breakdown</div>
