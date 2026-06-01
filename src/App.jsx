@@ -967,7 +967,7 @@ export default function App(){
   function handleLogout(){clearSession();setSessionState(null);setThreads([]);setHandlers([])}
   function handleLogin(sess){setSession(sess);setSessionState(sess)}
 
-  if(!session) return <LoginScreen onLogin={handleLogin}/>
+  if(!session){window.location.href='https://consultadd-site-production.up.railway.app';return null;}
 
   if(loading) return <div style={{height:'100%',display:'grid',placeItems:'center',background:'var(--canvas)'}}>
     <div style={{textAlign:'center',color:'var(--ink-3)'}}>
