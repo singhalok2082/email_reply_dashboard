@@ -869,8 +869,13 @@ export default function App(){
   const [session,setSessionState]=uS(()=>{
     try{
       const params=new URLSearchParams(window.location.search);
-      const token=params.get('session');
-      if(token){const s=JSON.parse(atob(decodeURIComponent(token)));setSession(s);window.history.replaceState({},'',window.location.pathname);return s;}
+      const token=params.get('s')||params.get('session');
+      if(token){
+        const s=JSON.parse(decodeURIComponent(escape(atob(token))));
+        setSession(s);
+        window.history.replaceState({},'',window.location.pathname);
+        return s;
+      }
     }catch(e){}
     return getSession();
   })
