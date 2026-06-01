@@ -811,7 +811,7 @@ function Sidebar({handler,isAdmin,route,setRoute,campaigns,handlers,go,onLogout,
     :[['inbox','Inbox','inbox'],['mine','My replies','user'],['campaigns','Campaigns','campaign']]
   return <div className="sidebar">
     <div className="sb-brand">
-      <BrandMark/><span className="brand-name">Replyloop</span>
+      <div className="brand-mark" style={{width:31,height:31,fontSize:18,borderRadius:8}}>R</div><span className="brand-name">Replyloop</span>
       {isAdmin&&<span className="badge solid" style={{height:18,fontSize:9.5,marginLeft:'auto'}}>ADMIN</span>}
     </div>
     <div className="sb-scroll">
