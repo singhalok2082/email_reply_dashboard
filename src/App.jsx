@@ -157,34 +157,56 @@ function Checkbox({on,indeterminate,onClick}){
 function stripQuotedReply(body){
   if(!body) return ''
   const separators=[
-    /\r?\n[-_]{3,}\r?\n/,
+    /\r?\n_{10,}/m,
+    /\r?\n-{10,}/m,
     /\r?\nFrom:\s+/im,
     /\r?\nOn .+wrote:/im,
-    /\r?\n>+\s/m,
-    /\r?\nSent:\s+/im,
+    /\r?\n>{1,}\s/m,
     /\r?\n-{3,}Original Message-{3,}/im,
+    /\r?\nGet Outlook for/im,
   ]
   let result=body
   for(const sep of separators){
     const idx=result.search(sep)
-    if(idx>80) result=result.slice(0,idx)
+    if(idx>60) result=result.slice(0,idx)
   }
   return result.trim()
 }
 
+function extractSentEmail(replyBody, sentEmailBody){
+  // If we already have sent_email_body use it
+  if(sentEmailBody && sentEmailBody.trim()) return sentEmailBody.trim()
+  if(!replyBody) return null
+  // Extract quoted outbound from reply chain
+  // Pattern: From: ... Sent: ... To: ... Subject: ... [blank line] [content]
+  const m=replyBody.match(/(?:From:|________________________________\s*From:)[\s\S]+?Subject:[^\n]+\n+([\s\S]+)/i)
+  if(m){
+    const extracted=m[1].trim()
+    // Strip trailing signature/disclaimer lines
+    const clean=extracted
+      .replace(/\n+External email;[\s\S]*$/i,'')
+      .replace(/\n+You don't often get email[\s\S]*$/i,'')
+      .trim()
+    return clean.length>20?clean:null
+  }
+  return null
+}
+
 function rowToThread(r){
   const messages=[]
-  if(r.sent_email_body){
+  const rawReply=r.reply_body||r.reply_full||''
+  const sentBody=extractSentEmail(rawReply, r.sent_email_body)
+  if(sentBody){
     messages.push({
       from:'me',
       author: r.sending_email||'ConsultAdd',
       email: r.sending_email||'',
       date: fmtDateLong(r.created_at),
       time: '',
-      body: stripQuotedReply(r.sent_email_body),
+      body: sentBody,
     })
   }
-  const replyBody=stripQuotedReply(r.reply_body||r.reply_full||'')
+  const replyBody=stripQuotedReply(rawReply)
   messages.push({
     from:'lead',
     author: r.lead_name||r.lead_email||'Lead',
