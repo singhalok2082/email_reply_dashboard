@@ -767,7 +767,7 @@ function AnalyticsScreen({threads,handlers}){
     const key=d.toISOString().slice(0,10)
     const label=d.toLocaleDateString([],{month:'short',day:'numeric'})
     const daySends=sends.filter(s=>s.event_type==='email_sent'&&s.created_at?.slice(0,10)===key).length
-    const dayReplies=threads.filter(t=>t.ts&&new Date(t.created_at||'').toISOString().slice(0,10)===key).length
+    const dayReplies=threads.filter(t=>{try{return t.created_at&&new Date(t.created_at).toISOString().slice(0,10)===key}catch{return false}}).length
     return {key,label,sends:daySends,replies:dayReplies}
   })
   const maxDay=Math.max(...days.map(d=>Math.max(d.sends,d.replies)),1)
