@@ -228,7 +228,7 @@ function rowToThread(r){
       phone: '',
       location: '',
       jobTitle: r.reply_subject||'',
-      linkedin: r.job_url||'#',
+      linkedin: r.job_url&&r.job_url.trim()&&r.job_url!=='#'?r.job_url.trim():null,
     },
     intent: normalizeIntent(r.status),
     assignee: r.poc||null,
@@ -238,6 +238,7 @@ function rowToThread(r){
     done: ['Archive','Unsubscribe'].includes(r.status),
     sla: 'ok',
     sdr_notes: r.sdr_notes||'',
+    created_at: r.created_at||null,
     messages,
   }
 }
@@ -515,7 +516,7 @@ function LeadPanel({thread,handlers,onClose}){
         <span className={'badge '+(thread.sla==='breach'?'sla-breach':thread.sla==='risk'?'sla-risk':'sla-ok')}><Icon name="clock" size={12}/>SLA {thread.sla==='breach'?'breached':thread.sla==='risk'?'at risk':'on time'}</span>
       </div>
     </div>
-    {l.linkedin&&l.linkedin!=='#'&&<div style={{padding:'16px 20px',borderBottom:'1px solid var(--line)'}}>
+    {l.linkedin&&l.linkedin.startsWith('http')&&<div style={{padding:'16px 20px',borderBottom:'1px solid var(--line)'}}>
       <div className="kicker" style={{marginBottom:8}}>Job posting</div>
       <div style={{fontSize:13.5,fontWeight:600,lineHeight:1.4,marginBottom:11}}>{l.jobTitle}</div>
       <a href={l.linkedin} target="_blank" rel="noreferrer" className="btn primary block" style={{textDecoration:'none'}}><Icon name="linkedin" size={17}/> Open job on LinkedIn <Icon name="external" size={14}/></a>
@@ -767,7 +768,7 @@ function AnalyticsScreen({threads,handlers}){
     const key=d.toISOString().slice(0,10)
     const label=d.toLocaleDateString([],{month:'short',day:'numeric'})
     const daySends=sends.filter(s=>s.event_type==='email_sent'&&s.created_at?.slice(0,10)===key).length
-    const dayReplies=threads.filter(t=>{try{return t.created_at&&new Date(t.created_at).toISOString().slice(0,10)===key}catch{return false}}).length
+    const dayReplies=threads.filter(t=>{try{const d=t.created_at||t.raw_date;return d&&new Date(d).toISOString().slice(0,10)===key}catch{return false}}).length
     return {key,label,sends:daySends,replies:dayReplies}
   })
   const maxDay=Math.max(...days.map(d=>Math.max(d.sends,d.replies)),1)
