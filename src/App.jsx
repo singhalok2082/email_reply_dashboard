@@ -213,7 +213,7 @@ function rowToThread(r){
     email: r.lead_email||'',
     date: fmtDateLong(r.created_at),
     time: fmtTime(r.created_at),
-    body: replyBody||'(no content)',
+    body: replyBody || rawReply.trim() || '(no content)',
   })
   return {
     id: r.id,
