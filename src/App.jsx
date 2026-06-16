@@ -239,6 +239,7 @@ function rowToThread(r){
     sla: 'ok',
     sdr_notes: r.sdr_notes||'',
     created_at: r.created_at||null,
+    email_id: r.email_id||null,
     messages,
   }
 }
@@ -493,7 +494,21 @@ function ThreadReader({thread,handler,isAdmin,onUpdate,onClose,handlers,leadOpen
         </div>
       </div>
     </div>
-    <Composer thread={thread} handler={handler} onSend={send}/>
+    <Composer thread={thread} handler={handler} onSend={async (draftText)=>{
+      if(!thread.email_id){alert('Cannot send: no email_id for this thread.');return}
+      try{
+        const res=await fetch('https://tdbslwfssutwstumobge.supabase.co/functions/v1/send-reply',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({reply_id:thread.email_id,reply_text:draftText})
+        })
+        const data=await res.json()
+        if(!res.ok) throw new Error(data.error||'Send failed')
+        alert('Reply sent successfully!')
+      }catch(e){
+        alert('Failed to send reply: '+e.message)
+      }
+    }}/>
   </div>
 }
 function LeadPanel({thread,handlers,onClose}){
