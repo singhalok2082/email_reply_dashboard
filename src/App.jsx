@@ -240,6 +240,7 @@ function rowToThread(r){
     sdr_notes: r.sdr_notes||'',
     created_at: r.created_at||null,
     email_id: r.email_id||null,
+    unibox_url: r.reply_full ? (() => { try { return JSON.parse(r.reply_full)?.unibox_url||null } catch(e){ return null } })() : null,
     messages,
   }
 }
@@ -381,19 +382,74 @@ function Message({m,leadName,open,onToggle,isLast}){
     <div className="msg-body">{m.body}</div>
   </div>
 }
+function ResumePickerModal({onClose,onSelect}){
+  const [resumes,setResumes]=uS([])
+  const [uploading,setUploading]=uS(false)
+  const [loading,setLoading]=uS(true)
+  uE(()=>{
+    supabase.from('resumes').select('*').order('created_at',{ascending:false})
+      .then(({data})=>{setResumes(data||[]);setLoading(false)})
+  },[])
+  async function upload(e){
+    const file=e.target.files[0]
+    if(!file)return
+    setUploading(true)
+    const path=`${Date.now()}_${file.name}`
+    const {error:upErr}=await supabase.storage.from('resumes').upload(path,file,{contentType:file.type})
+    if(upErr){alert('Upload failed: '+upErr.message);setUploading(false);return}
+    const {error:dbErr}=await supabase.from('resumes').insert({name:file.name,filename:file.name,storage_path:path,content_type:file.type})
+    if(dbErr){alert('DB insert failed: '+dbErr.message);setUploading(false);return}
+    const {data}=await supabase.from('resumes').select('*').order('created_at',{ascending:false})
+    setResumes(data||[])
+    setUploading(false)
+  }
+  async function deleteResume(r){
+    if(!confirm('Delete '+r.name+'?'))return
+    await supabase.storage.from('resumes').remove([r.storage_path])
+    await supabase.from('resumes').delete().eq('id',r.id)
+    setResumes(rs=>rs.filter(x=>x.id!==r.id))
+  }
+  return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={onClose}>
+    <div style={{background:'var(--surface)',borderRadius:14,padding:24,width:480,maxHeight:'80vh',overflowY:'auto',boxShadow:'var(--sh-pop)'}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <span style={{fontWeight:700,fontSize:16}}>Resume Library</span>
+        <button className="icon-btn" onClick={onClose}><Icon name="x" size={16}/></button>
+      </div>
+      <label style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',border:'2px dashed var(--line)',borderRadius:10,cursor:'pointer',marginBottom:16,color:'var(--ink-3)',fontSize:13}}>
+        <Icon name="clip" size={16}/>{uploading?'Uploading…':'Upload new resume / doc (PDF, DOCX)'}
+        <input type="file" accept=".pdf,.doc,.docx" style={{display:'none'}} onChange={upload} disabled={uploading}/>
+      </label>
+      {loading?<div style={{textAlign:'center',color:'var(--ink-3)',padding:20}}>Loading…</div>:
+        resumes.length===0?<div style={{textAlign:'center',color:'var(--ink-3)',padding:20,fontSize:13}}>No resumes uploaded yet</div>:
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {resumes.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',border:'1px solid var(--line)',borderRadius:8}}>
+            <Icon name="file" size={16} style={{color:'var(--primary)',flexShrink:0}}/>
+            <span style={{flex:1,fontSize:13,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.name}</span>
+            <button className="btn sm" onClick={()=>onSelect(r)} style={{flexShrink:0}}>Attach</button>
+            <button className="icon-btn" onClick={()=>deleteResume(r)} style={{flexShrink:0,color:'var(--red)'}}><Icon name="trash" size={14}/></button>
+          </div>)}
+        </div>
+      }
+    </div>
+  </div>
+}
+
 function Composer({thread,handler,onSend}){
   const [mode,setMode]=uS('reply')
   const [draft,setDraft]=uS('')
   const [cc,setCc]=uS(false)
+  const [attachment,setAttachment]=uS(null)
+  const [showPicker,setShowPicker]=uS(false)
   const fwd=mode==='forward'
   async function submit(){
     if(!draft.trim())return
-    // Save reply to Supabase
     await supabase.from('instantly_replies').update({sdr_notes:draft.trim()}).eq('id',thread.id)
-    onSend(draft.trim())
+    onSend(draft.trim(), attachment)
     setDraft('')
+    setAttachment(null)
   }
   return <div className="composer">
+    {showPicker&&<ResumePickerModal onClose={()=>setShowPicker(false)} onSelect={r=>{setAttachment(r);setShowPicker(false)}}/>}
     <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap'}}>
       {QUICK.map(q=><button key={q.label} onClick={()=>setDraft(d=>d?d:q.text)} className="tmpl-chip"><Icon name="sparkle" size={12}/>{q.label}</button>)}
     </div>
@@ -407,16 +463,21 @@ function Composer({thread,handler,onSend}){
       <div className="composer-field"><span className="cf-label">To</span><span className="cf-val mono">{fwd?'':thread.lead.email}</span></div>
       {cc&&<div className="composer-field"><span className="cf-label">Cc</span><span className="faint" style={{fontSize:12.5}}>Add Cc…</span></div>}
       <div className="composer-field"><span className="cf-label">Subj</span><span className="cf-val">{(fwd?'Fwd: ':'')+thread.subject.replace(/^(Re|Fwd):\s*/i,'Re: ')}</span></div>
+      {attachment&&<div className="composer-field" style={{background:'var(--primary-tint-2)',borderRadius:6}}>
+        <Icon name="file" size={14} style={{color:'var(--primary)',marginRight:6}}/>
+        <span style={{fontSize:12.5,flex:1,color:'var(--primary-ink)'}}>{attachment.name}</span>
+        <button className="icon-btn" style={{width:20,height:20}} onClick={()=>setAttachment(null)}><Icon name="x" size={12}/></button>
+      </div>}
       <textarea value={draft} onChange={e=>setDraft(e.target.value)} rows={4} placeholder={`Write your ${fwd?'forward note':'reply'}…`} className="composer-text"/>
       <div className="composer-bar">
         <div style={{display:'flex',gap:1}}>
           {['bold','italic','link'].map(b=><button key={b} className="icon-btn" style={{width:30,height:30}}><Icon name={b} size={16}/></button>)}
           <span style={{width:1,background:'var(--line)',margin:'5px 4px'}}/>
-          <button className="icon-btn" style={{width:30,height:30}}><Icon name="clip" size={16}/></button>
+          <button className="icon-btn" style={{width:30,height:30,color:attachment?'var(--primary)':undefined}} onClick={()=>setShowPicker(true)} title="Attach resume"><Icon name="clip" size={16}/></button>
           <button className="icon-btn" style={{width:30,height:30}}><Icon name="smile" size={16}/></button>
         </div>
         <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
-          <button className="icon-btn" style={{width:32,height:32}} onClick={()=>setDraft('')}><Icon name="trash" size={16}/></button>
+          <button className="icon-btn" style={{width:32,height:32}} onClick={()=>{setDraft('');setAttachment(null)}}><Icon name="trash" size={16}/></button>
           <button className="btn primary sm" onClick={submit} disabled={!draft.trim()}><Icon name="send" size={15}/> Send</button>
         </div>
       </div>
@@ -494,13 +555,17 @@ function ThreadReader({thread,handler,isAdmin,onUpdate,onClose,handlers,leadOpen
         </div>
       </div>
     </div>
-    <Composer thread={thread} handler={handler} onSend={async (draftText)=>{
+    <Composer thread={thread} handler={handler} onSend={async (draftText, attachment)=>{
       if(!thread.email_id){alert('Cannot send: no email_id for this thread.');return}
       try{
+        const body={reply_id:thread.email_id,reply_text:draftText}
+        if(attachment) body.attachment_path=attachment.storage_path
+        if(attachment) body.attachment_name=attachment.name
+        if(attachment) body.attachment_type=attachment.content_type
         const res=await fetch('https://tdbslwfssutwstumobge.supabase.co/functions/v1/send-reply',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({reply_id:thread.email_id,reply_text:draftText})
+          body:JSON.stringify(body)
         })
         const data=await res.json()
         if(!res.ok) throw new Error(data.error||'Send failed')
