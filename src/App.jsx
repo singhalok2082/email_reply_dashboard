@@ -434,13 +434,56 @@ function ResumePickerModal({onClose,onSelect}){
   </div>
 }
 
+const EMOJIS=['😊','👍','🙏','✅','📄','📞','💼','🤝','⭐','🎯','💡','📅','🔗','✨','👋','💪','🚀','📧']
+
 function Composer({thread,handler,onSend}){
   const [mode,setMode]=uS('reply')
   const [draft,setDraft]=uS('')
   const [cc,setCc]=uS(false)
+  const [ccVal,setCcVal]=uS('')
   const [attachment,setAttachment]=uS(null)
   const [showPicker,setShowPicker]=uS(false)
+  const [showEmoji,setShowEmoji]=uS(false)
+  const textRef=uR(null)
   const fwd=mode==='forward'
+
+  function wrapSelection(before,after=''){
+    const ta=textRef.current
+    if(!ta)return
+    const start=ta.selectionStart,end=ta.selectionEnd
+    const selected=draft.slice(start,end)
+    const newVal=draft.slice(0,start)+before+(selected||'text')+after+draft.slice(end)
+    setDraft(newVal)
+    setTimeout(()=>{ta.focus();ta.setSelectionRange(start+before.length,(selected?end:start+before.length+4)+before.length)},0)
+  }
+
+  function insertAtCursor(text){
+    const ta=textRef.current
+    if(!ta){setDraft(d=>d+text);return}
+    const start=ta.selectionStart
+    const newVal=draft.slice(0,start)+text+draft.slice(start)
+    setDraft(newVal)
+    setTimeout(()=>{ta.focus();ta.setSelectionRange(start+text.length,start+text.length)},0)
+  }
+
+  function handleBold(){wrapSelection('**','**')}
+  function handleItalic(){wrapSelection('*','*')}
+  function handleLink(){
+    const url=prompt('Enter URL:','https://')
+    if(!url)return
+    const ta=textRef.current
+    const selected=ta?draft.slice(ta.selectionStart,ta.selectionEnd):''
+    const linkText=selected||'link text'
+    const before=`[${linkText}](`
+    const after=')'
+    if(ta&&ta.selectionStart!==ta.selectionEnd){
+      const s=ta.selectionStart,e=ta.selectionEnd
+      setDraft(draft.slice(0,s)+`[${selected}](${url})`+draft.slice(e))
+    } else {
+      insertAtCursor(`[${linkText}](${url})`)
+    }
+  }
+
   async function submit(){
     if(!draft.trim())return
     await supabase.from('instantly_replies').update({sdr_notes:draft.trim()}).eq('id',thread.id)
@@ -448,6 +491,7 @@ function Composer({thread,handler,onSend}){
     setDraft('')
     setAttachment(null)
   }
+
   return <div className="composer">
     {showPicker&&<ResumePickerModal onClose={()=>setShowPicker(false)} onSelect={r=>{setAttachment(r);setShowPicker(false)}}/>}
     <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap'}}>
@@ -460,24 +504,31 @@ function Composer({thread,handler,onSend}){
         <span style={{marginLeft:'auto'}}/>
         <button className="ctab" onClick={()=>setCc(s=>!s)} data-on={cc?'1':undefined}>Cc/Bcc</button>
       </div>
-      <div className="composer-field"><span className="cf-label">To</span><span className="cf-val mono">{fwd?'':thread.lead.email}</span></div>
-      {cc&&<div className="composer-field"><span className="cf-label">Cc</span><span className="faint" style={{fontSize:12.5}}>Add Cc…</span></div>}
+      <div className="composer-field"><span className="cf-label">To</span><span className="cf-val mono">{fwd?<input style={{border:'none',outline:'none',background:'transparent',flex:1,fontSize:13}} placeholder="Enter recipient email…"/>:thread.lead.email}</span></div>
+      {cc&&<div className="composer-field"><span className="cf-label">Cc</span><input value={ccVal} onChange={e=>setCcVal(e.target.value)} style={{border:'none',outline:'none',background:'transparent',flex:1,fontSize:13}} placeholder="Add CC emails, comma separated…"/></div>}
       <div className="composer-field"><span className="cf-label">Subj</span><span className="cf-val">{(fwd?'Fwd: ':'')+thread.subject.replace(/^(Re|Fwd):\s*/i,'Re: ')}</span></div>
       {attachment&&<div className="composer-field" style={{background:'var(--primary-tint-2)',borderRadius:6}}>
         <Icon name="file" size={14} style={{color:'var(--primary)',marginRight:6}}/>
-        <span style={{fontSize:12.5,flex:1,color:'var(--primary-ink)'}}>{attachment.name}</span>
+        <span style={{fontSize:12.5,flex:1,color:'var(--primary-ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{attachment.name}</span>
         <button className="icon-btn" style={{width:20,height:20}} onClick={()=>setAttachment(null)}><Icon name="x" size={12}/></button>
       </div>}
-      <textarea value={draft} onChange={e=>setDraft(e.target.value)} rows={4} placeholder={`Write your ${fwd?'forward note':'reply'}…`} className="composer-text"/>
+      <textarea ref={textRef} value={draft} onChange={e=>setDraft(e.target.value)} rows={4} placeholder={`Write your ${fwd?'forward note':'reply'}…`} className="composer-text"/>
       <div className="composer-bar">
-        <div style={{display:'flex',gap:1}}>
-          {['bold','italic','link'].map(b=><button key={b} className="icon-btn" style={{width:30,height:30}}><Icon name={b} size={16}/></button>)}
+        <div style={{display:'flex',gap:1,alignItems:'center',position:'relative'}}>
+          <button className="icon-btn" style={{width:30,height:30,fontWeight:700}} onClick={handleBold} title="Bold"><Icon name="bold" size={16}/></button>
+          <button className="icon-btn" style={{width:30,height:30,fontStyle:'italic'}} onClick={handleItalic} title="Italic"><Icon name="italic" size={16}/></button>
+          <button className="icon-btn" style={{width:30,height:30}} onClick={handleLink} title="Insert link"><Icon name="link" size={16}/></button>
           <span style={{width:1,background:'var(--line)',margin:'5px 4px'}}/>
-          <button className="icon-btn" style={{width:30,height:30,color:attachment?'var(--primary)':undefined}} onClick={()=>setShowPicker(true)} title="Attach resume"><Icon name="clip" size={16}/></button>
-          <button className="icon-btn" style={{width:30,height:30}}><Icon name="smile" size={16}/></button>
+          <button className="icon-btn" style={{width:30,height:30,color:attachment?'var(--primary)':undefined}} onClick={()=>setShowPicker(true)} title="Attach resume/doc"><Icon name="clip" size={16}/></button>
+          <div style={{position:'relative'}}>
+            <button className="icon-btn" style={{width:30,height:30}} onClick={()=>setShowEmoji(s=>!s)} title="Insert emoji"><Icon name="smile" size={16}/></button>
+            {showEmoji&&<div style={{position:'absolute',bottom:36,left:0,background:'var(--surface)',border:'1px solid var(--line)',borderRadius:10,padding:8,display:'flex',flexWrap:'wrap',gap:4,width:220,boxShadow:'var(--sh-pop)',zIndex:50}}>
+              {EMOJIS.map(em=><button key={em} onClick={()=>{insertAtCursor(em);setShowEmoji(false)}} style={{border:'none',background:'none',cursor:'pointer',fontSize:18,padding:2,borderRadius:4,lineHeight:1}}>{em}</button>)}
+            </div>}
+          </div>
         </div>
         <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
-          <button className="icon-btn" style={{width:32,height:32}} onClick={()=>{setDraft('');setAttachment(null)}}><Icon name="trash" size={16}/></button>
+          <button className="icon-btn" style={{width:32,height:32}} onClick={()=>{setDraft('');setAttachment(null)}} title="Clear"><Icon name="trash" size={16}/></button>
           <button className="btn primary sm" onClick={submit} disabled={!draft.trim()}><Icon name="send" size={15}/> Send</button>
         </div>
       </div>
