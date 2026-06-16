@@ -1065,7 +1065,14 @@ export default function App(){
         setCampaigns(prev=>[...new Set([...prev,t.campaign].filter(Boolean))])
       })
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'instantly_replies'},payload=>{
-        setThreads(prev=>prev.map(t=>t.id===payload.new.id?{...t,...rowToThread(payload.new)}:t))
+        const p=payload.new
+        setThreads(prev=>prev.map(t=>t.id===p.id?{
+          ...t,
+          status: p.status||t.status,
+          poc: p.poc||t.poc,
+          starred: p.starred!==undefined?p.starred:t.starred,
+          sdrNotes: p.sdr_notes!==undefined?p.sdr_notes:t.sdrNotes,
+        }:t))
       })
       .subscribe()
     return ()=>supabase.removeChannel(sub)
