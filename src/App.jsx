@@ -546,7 +546,7 @@ function ThreadReader({thread,handler,isAdmin,onUpdate,onClose,handlers,leadOpen
   const intents=['new','interested','meeting','ooo','unsubscribe']
   function send(body){
     const now=new Date()
-    const nm={from:'me',author:handler.name,email:handler.email,date:fmtDateLong(now.toISOString()),time:fmtTime(now.toISOString()),body}
+    const nm={from:'me',author:handler?.name||'You',email:handler?.email||'',date:fmtDateLong(now.toISOString()),time:fmtTime(now.toISOString()),body}
     onUpdate(thread.id,{messages:[...thread.messages,nm]})
     setTimeout(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight},60)
   }
@@ -620,7 +620,7 @@ function ThreadReader({thread,handler,isAdmin,onUpdate,onClose,handlers,leadOpen
         })
         const data=await res.json()
         if(!res.ok) throw new Error(data.error||'Send failed')
-        alert('Reply sent successfully!')
+        send(draftText)
       }catch(e){
         alert('Failed to send reply: '+e.message)
       }
