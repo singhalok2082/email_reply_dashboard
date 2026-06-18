@@ -359,7 +359,7 @@ function Message({m,leadName,leadEmail,sendingEmail,open,onToggle,isLast}){
   if(!open){
     return <button className="msg-collapsed" onClick={onToggle}>
       {mine?<span className="msg-av-me">{initials(m.author)}</span>:<Avatar name={m.author} size="sm"/>}
-      <span style={{fontWeight:600,fontSize:13,whiteSpace:'nowrap'}}>{mine?(m.email||m.author):m.author.split(',')[0]}</span>
+      <span style={{fontWeight:600,fontSize:13,whiteSpace:'nowrap'}}>{mine?(m.email||sendingEmail||m.author):m.author.split(',')[0]}</span>
       <span className="faint" style={{fontSize:12.5,flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{snippet}</span>
       <span className="faint" style={{fontSize:11.5,whiteSpace:'nowrap',flex:'none'}}>{m.time}</span>
     </button>
@@ -369,10 +369,13 @@ function Message({m,leadName,leadEmail,sendingEmail,open,onToggle,isLast}){
       {mine?<span className="msg-av-me md">{initials(m.author)}</span>:<Avatar name={m.author} size="md"/>}
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:'flex',alignItems:'baseline',gap:7,flexWrap:'wrap'}}>
-          <span style={{fontWeight:700,fontSize:14}}>{mine?'You':m.author}</span>
-          <span className="mono faint" style={{fontSize:11.5}}>&lt;{m.email}&gt;</span>
+          <span style={{fontWeight:700,fontSize:14}}>{mine?(m.email||sendingEmail):m.author}</span>
         </div>
-        <div className="faint" style={{fontSize:11.5,marginTop:1}}>{mine?'to '+leadName.split(' ')[0]:'to me'}</div>
+        <div style={{fontSize:11.5,marginTop:2,color:'var(--ink-3)'}}>
+          <span className="mono">{mine?(m.email||sendingEmail):(m.email||leadEmail)}</span>
+          <span style={{margin:'0 5px',opacity:.5}}>→</span>
+          <span className="mono">{mine?leadEmail:sendingEmail}</span>
+        </div>
       </div>
       <div style={{display:'flex',alignItems:'center',gap:2,flex:'none'}}>
         <span className="faint" style={{fontSize:11.5,marginRight:6,whiteSpace:'nowrap'}}>{m.date} · {m.time}</span>
