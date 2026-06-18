@@ -240,6 +240,7 @@ function rowToThread(r){
     sdr_notes: r.sdr_notes||'',
     created_at: r.created_at||null,
     email_id: r.email_id||null,
+    sending_email: r.sending_email||null,
     unibox_url: r.reply_full ? (() => { try { return JSON.parse(r.reply_full)?.unibox_url||null } catch(e){ return null } })() : null,
     messages,
   }
@@ -352,13 +353,13 @@ const QUICK=[
   {label:'Confirm work auth',text:`To confirm: I'm authorized to work in the U.S. and open to relocating for the right opportunity. Resume attached for your review.`},
   {label:'Propose times',text:`I'd love to connect. I'm free Thursday 2–5pm ET or Friday morning ET — let me know what works and I'll send an invite.`},
 ]
-function Message({m,leadName,open,onToggle,isLast}){
+function Message({m,leadName,leadEmail,sendingEmail,open,onToggle,isLast}){
   const mine=m.from==='me'
   const snippet=m.body.replace(/\n+/g,' ').slice(0,92)
   if(!open){
     return <button className="msg-collapsed" onClick={onToggle}>
       {mine?<span className="msg-av-me">{initials(m.author)}</span>:<Avatar name={m.author} size="sm"/>}
-      <span style={{fontWeight:600,fontSize:13,whiteSpace:'nowrap'}}>{mine?'You':m.author.split(',')[0]}</span>
+      <span style={{fontWeight:600,fontSize:13,whiteSpace:'nowrap'}}>{mine?(m.email||m.author):m.author.split(',')[0]}</span>
       <span className="faint" style={{fontSize:12.5,flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{snippet}</span>
       <span className="faint" style={{fontSize:11.5,whiteSpace:'nowrap',flex:'none'}}>{m.time}</span>
     </button>
@@ -546,7 +547,7 @@ function ThreadReader({thread,handler,isAdmin,onUpdate,onClose,handlers,leadOpen
   const intents=['new','interested','meeting','ooo','unsubscribe']
   function send(body){
     const now=new Date()
-    const nm={from:'me',author:handler?.name||'You',email:handler?.email||'',date:fmtDateLong(now.toISOString()),time:fmtTime(now.toISOString()),body}
+    const nm={from:'me',author:thread.sending_email||handler?.name||'You',email:thread.sending_email||handler?.email||'',date:fmtDateLong(now.toISOString()),time:fmtTime(now.toISOString()),body}
     onUpdate(thread.id,{messages:[...thread.messages,nm]})
     setTimeout(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight},60)
   }
@@ -598,7 +599,7 @@ function ThreadReader({thread,handler,isAdmin,onUpdate,onClose,handlers,leadOpen
         </div>
         {collapsedCount>0&&<button onClick={expandAll} className="expand-strip"><Icon name="expand" size={15}/> Expand {collapsedCount} collapsed message{collapsedCount>1?'s':''}</button>}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          {thread.messages.map((m,i)=><Message key={i} m={m} leadName={thread.lead.name} isLast={i===thread.messages.length-1} open={expanded.has(i)} onToggle={()=>toggle(i)}/>)}
+          {thread.messages.map((m,i)=><Message key={i} m={m} leadName={thread.lead.name} leadEmail={thread.lead.email} sendingEmail={thread.sending_email||''} isLast={i===thread.messages.length-1} open={expanded.has(i)} onToggle={()=>toggle(i)}/>)}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:8,margin:'20px 0 4px',flexWrap:'wrap'}}>
           <span className="kicker" style={{marginRight:2}}>Set intent</span>
